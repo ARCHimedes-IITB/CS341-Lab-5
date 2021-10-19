@@ -1,2 +1,3 @@
-# CS341-Lab-5
-Lab 5, Computer Architecture, Autumn 2021, IIT Bombay
+# CS341 Lab 5
+Given on: 18/10/2021, 00:30  
+Due on: Friday, 29/10/2021, 17:00
