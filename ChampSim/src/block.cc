@@ -143,3 +143,93 @@ void PACKET_QUEUE::remove_queue(PACKET *packet) {
   if (head >= SIZE)
     head = 0;
 }
+
+// -------------- MadCache ------------- //
+
+/**
+ * get_default_policy - Returns the current default policy
+ */
+POLICY PREDICTOR::get_default_policy()
+{
+  return static_cast<POLICY>((default_policy_counter >> 9) & 1);
+}
+
+/**
+ * get_policy - Returns the policy to be used for this PC.
+ * If a hit in the predictor, returns a PC-specific policy.
+ * Otherwise returns the default policy.
+ */
+POLICY PREDICTOR::get_policy(uint64_t pc)
+{
+  POLICY default_policy = get_default_policy();
+  for (int i = 0; i < 1024; i++) {
+    if (pred_entries[i].pc == pc && default_policy == pred_entries[i].policy &&
+     pred_entries[i].num_entries)
+      return static_cast<POLICY>((pred_entries[i].counter >> 5)&1);
+  }
+  return default_policy;
+}
+
+/**
+ * add_entry - Add an entry in the predictor for pc.
+ * If an entry already exists, simply increments the corresponding
+ * counter. Otherwise tries to find and initialize a fresh entry.
+ * Returns the corresponding index if a merged or fresh entry is found/
+ * created. Otherwise, returns -1 to indicate unavailability of slots.
+ */
+int PREDICTOR::add_entry(uint64_t pc)
+{
+  POLICY default_policy = get_default_policy();
+  int free_index = -1;
+  for (int i = 0; i < 1024; i++) {
+    if (pred_entries[i].pc == pc && default_policy == pred_entries[i].policy &&
+     pred_entries[i].num_entries) {
+      // Simply increment num_entries and return this index
+      pred_entries[i].num_entries++;
+      return i;
+    } else if (pred_entries[i].pc == (uint64_t)(-1))
+      free_index = i;
+  }
+
+  if (free_index != -1) {
+    // Unable to merge, but at least found a free slot
+    pred_entries[free_index].policy = default_policy;
+    pred_entries[free_index].pc = pc;
+    pred_entries[free_index].counter = (1 << 5) - 1;
+    pred_entries[free_index].num_entries = 1;
+  }
+  return free_index;
+}
+
+/**
+ * update_hit - Called to indicate a hit in the LLC for a 
+ * request to a cacheline that has an associated pred-index 
+ * `index`. Decrements the counter of the corresponding entry, 
+ * except if we are already at 0.
+ */
+void PREDICTOR::update_hit(int index)
+{
+  if (pred_entries[index].counter)
+    pred_entries[index].counter--;
+}
+
+/**
+ * update_evicted - Called to indicate that a cacheline with
+ * associated pred-index `index` has been evicted. Decrements
+ * the num_entries of the corresponding entry, and increments
+ * its counter if reuse is not set.
+ * Further, removes the entry in the predictor if the 
+ * num_entries field falls to 0 for this pc.
+ */
+void PREDICTOR::update_evicted(int index, bool reuse)
+{
+  if (--pred_entries[index].num_entries == 0) {
+    // No more users of this entry -- mark invalid
+    pred_entries[index].pc = (uint64_t)(-1);
+  } else if (!reuse) {
+    // At least one other user, and no reuse
+    // Increment counter, unless already at max
+    if (pred_entries[index].counter != (1<<6)-1)
+      pred_entries[index].counter++;
+  }
+}

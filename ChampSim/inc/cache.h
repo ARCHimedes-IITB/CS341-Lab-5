@@ -107,6 +107,11 @@ public:
 
   uint64_t total_miss_latency;
 
+  // ------------ MadCache ------------- //
+
+  // predictor
+  PREDICTOR predictor;
+
   // constructor
   CACHE(string v1, uint32_t v2, int v3, uint32_t v4, uint32_t v5, uint32_t v6,
         uint32_t v7, uint32_t v8)
@@ -234,6 +239,19 @@ public:
       lru_victim(uint32_t cpu, uint64_t instr_id, uint32_t set,
                  const BLOCK *current_set, uint64_t ip, uint64_t full_addr,
                  uint32_t type);
+
+  // ------------ MadCache ------------- //
+
+  /**
+   * is_tracker_set - Returns true iff the passed address corresponds to
+   * a tracker set. Called to know whether we should do accounting for this
+   * access. For now we simple use the 4 LSBs of the index bits to decide.
+   */
+  inline bool is_tracker_set(uint64_t address)
+  {
+    // Return true if last 4 bits of index = 0x1001 - Roughly 1/16 chance
+    return ((get_set(address) & 0xF) == 9);
+  }
 };
 
 #endif
