@@ -4,9 +4,30 @@
 #include "ip_stride.h"
 
 #define IP_TRACKER_COUNT 1024
-#define PREFETCH_DEGREE 3
+// #define PREFETCH_DEGREE 3
+#define ACCURACY_TH 0.5
+#define DEGREE_LOWER 1
+#define DEGREE_UPPER 3
 
 IP_TRACKER trackers_l1d[IP_TRACKER_COUNT];
+
+void CACHE::prefetch_throttle(uint64_t ip, int type) {
+  for (int i = 0; i < IP_TRACKER_COUNT; i++) {
+    if (trackers[i].ip == ip) {
+      if (type == 0)
+        trackers[i].pf_useless++;
+      else
+        trackers[i].pf_useful++;
+
+      if ( (trackers[i].pf_useless + trackers[i].pf_useful) * ACCURACY_TH > trackers[i].pf_useful )
+        trackers[i].degree = DEGREE_LOWER;
+      else
+        trackers[i].degree = DEGREE_UPPER;
+
+      break;
+    }
+  }
+}
 
 void CACHE::l1d_prefetcher_initialize() {
   cout << "CPU " << cpu << " L1D IP-based stride prefetcher" << endl;
@@ -79,7 +100,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
   if (stride == trackers_l1d[index].last_stride) {
 
     // do some prefetching
-    for (int i = 0; i < PREFETCH_DEGREE; i++) {
+    for (int i = 0; i < trackers_l1d[index].degree; i++) {
       uint64_t pf_address = (cl_addr + (stride * (i + 1))) << LOG2_BLOCK_SIZE;
 
       // only issue a prefetch if the prefetch address is in the same 4 KB page

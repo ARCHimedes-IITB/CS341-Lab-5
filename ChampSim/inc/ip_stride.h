@@ -16,6 +16,15 @@ class IP_TRACKER {
   // use LRU to evict old IP trackers_l1d
   uint32_t lru;
 
+  // no. of useful prefetches generated for this IP
+  uint64_t pf_useful;
+
+  // no. of useless prefetches generated for this IP
+  uint64_t pf_useless;
+
+  // degree fir current IP
+  uint64_t degree;
+
   IP_TRACKER() {
     ip = 0;
     last_cl_addr = 0;

@@ -657,6 +657,7 @@ void CACHE::handle_read() {
         // update prefetch stats and reset prefetch bit
         if (block[set][way].prefetch) {
           pf_useful++;
+          prefetch_throttle(block[set][way].ip, 1);
           block[set][way].prefetch = 0;
         }
         block[set][way].used = 1;
@@ -1157,8 +1158,10 @@ void CACHE::fill_cache(uint32_t set, uint32_t way, PACKET *packet) {
       assert(0);
   }
 #endif
-  if (block[set][way].prefetch && (block[set][way].used == 0))
+  if (block[set][way].prefetch && (block[set][way].used == 0)) {
     pf_useless++;
+    prefetch_throttle(block[set][way].ip, 0);
+  }
 
   if (block[set][way].valid == 0)
     block[set][way].valid = 1;
