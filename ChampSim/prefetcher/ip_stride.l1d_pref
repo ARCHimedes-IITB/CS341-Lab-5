@@ -6,23 +6,23 @@
 #define IP_TRACKER_COUNT 1024
 // #define PREFETCH_DEGREE 3
 #define ACCURACY_TH 0.5
-#define DEGREE_LOWER 1
+#define DEGREE_LOWER 3
 #define DEGREE_UPPER 3
 
 IP_TRACKER trackers_l1d[IP_TRACKER_COUNT];
 
-void CACHE::prefetch_throttle(uint64_t ip, int type) {
+void CACHE::l1d_prefetch_throttle(uint64_t ip, int type) {
   for (int i = 0; i < IP_TRACKER_COUNT; i++) {
-    if (trackers[i].ip == ip) {
+    if (trackers_l1d[i].ip == ip) {
       if (type == 0)
-        trackers[i].pf_useless++;
+        trackers_l1d[i].pf_useless++;
       else
-        trackers[i].pf_useful++;
+        trackers_l1d[i].pf_useful++;
 
-      if ( (trackers[i].pf_useless + trackers[i].pf_useful) * ACCURACY_TH > trackers[i].pf_useful )
-        trackers[i].degree = DEGREE_LOWER;
+      if ( (trackers_l1d[i].pf_useless + trackers_l1d[i].pf_useful) * ACCURACY_TH > trackers_l1d[i].pf_useful )
+        trackers_l1d[i].degree = DEGREE_LOWER;
       else
-        trackers[i].degree = DEGREE_UPPER;
+        trackers_l1d[i].degree = DEGREE_UPPER;
 
       break;
     }
@@ -31,8 +31,10 @@ void CACHE::prefetch_throttle(uint64_t ip, int type) {
 
 void CACHE::l1d_prefetcher_initialize() {
   cout << "CPU " << cpu << " L1D IP-based stride prefetcher" << endl;
-  for (int i = 0; i < IP_TRACKER_COUNT; i++)
+  for (int i = 0; i < IP_TRACKER_COUNT; i++){
     trackers_l1d[i].lru = i;
+    trackers_l1d[i].degree = DEGREE_UPPER;
+  }
 }
 
 void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,

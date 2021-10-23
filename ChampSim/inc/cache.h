@@ -164,6 +164,10 @@ public:
   // functions
   int add_rq(PACKET *packet), add_wq(PACKET *packet), add_pq(PACKET *packet);
 
+  // Prefetch throttling
+  void l1d_prefetch_throttle(uint64_t ip, int type);
+  void l2c_prefetch_throttle(uint64_t ip, int type);
+
   void return_data(PACKET *packet), operate(),
       increment_WQ_FULL(uint64_t address);
 

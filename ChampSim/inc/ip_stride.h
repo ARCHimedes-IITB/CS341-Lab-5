@@ -22,14 +22,16 @@ class IP_TRACKER {
   // no. of useless prefetches generated for this IP
   uint64_t pf_useless;
 
-  // degree fir current IP
-  uint64_t degree;
+  // degree for current IP
+  int degree;
 
   IP_TRACKER() {
     ip = 0;
     last_cl_addr = 0;
     last_stride = 0;
     lru = 0;
+    pf_useful = 0;
+    pf_useless = 0;
   };
 
 };
