@@ -5,9 +5,15 @@
 #include "instruction.h"
 #include "set.h"
 
+// We reuse the POLICY class below to also be able to set a forced
+// static policy (to compare to LRU and BBIP baselines) - this is
+// the only reason the DYNAMIC enum entry is introduced. It has no
+// other use than to indicate that we are using MadCache and not
+// one of the static policies
 enum POLICY {
   LRU = 0,
-  BBIP
+  BBIP,
+  DYNAMIC
 };
 
 // CACHE BLOCK
@@ -23,7 +29,7 @@ public:
   uint32_t lru;
 
   // MadCache-related: index to PC-predictor and reuse bit
-  uint32_t pc_pred_index;
+  int pc_pred_index;
   bool reuse;
 
   BLOCK() {
@@ -329,22 +335,32 @@ private:
   // Counter for the default policy - only the 10 LSBs are used
   uint16_t default_policy_counter;
 
+  // If this is not DYNAMIC, we always use the static specified policy
+  POLICY global_override_policy;
+
 public:
-  PREDICTOR()
+  PREDICTOR(POLICY gop=DYNAMIC)
   {
     // Initialize each entry to be invalid, and the default policy counter
     // to be *barely* LRU.
     for (int i = 0; i < 1024; i++) 
       pred_entries[i].pc = (uint64_t)(-1);
-    default_policy_counter = (1 << 9)-1;
+    default_policy_counter = (1 << 9) - 1;
+    global_override_policy = gop;
   }
 
   ~PREDICTOR() { }
 
-  inline POLICY get_default_policy();
+  void set_override_policy(POLICY gop) 
+  {
+    global_override_policy = gop;
+  }
+
+  POLICY get_default_policy();
   POLICY get_policy(uint64_t pc);
   int add_entry(uint64_t pc);
-  inline void update_hit(int index);
+  void update_hit(int index);
+  void update_miss(uint64_t pc);
   void update_evicted(int index, bool reuse);
 };
 

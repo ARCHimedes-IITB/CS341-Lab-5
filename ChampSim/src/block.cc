@@ -151,6 +151,12 @@ void PACKET_QUEUE::remove_queue(PACKET *packet) {
  */
 POLICY PREDICTOR::get_default_policy()
 {
+  // If we are using a global overriding policy, return it instead
+  // For now we never call get_default_policy unless this is not
+  // the case, hence commented out the below lines. 
+
+  // if (global_override_policy != DYNAMIC)
+  //   return global_override_policy;
   return static_cast<POLICY>((default_policy_counter >> 9) & 1);
 }
 
@@ -161,6 +167,10 @@ POLICY PREDICTOR::get_default_policy()
  */
 POLICY PREDICTOR::get_policy(uint64_t pc)
 {
+  // If we are using a global overriding policy, return it instead
+  if (global_override_policy != DYNAMIC)
+    return global_override_policy;
+
   POLICY default_policy = get_default_policy();
   for (int i = 0; i < 1024; i++) {
     if (pred_entries[i].pc == pc && default_policy == pred_entries[i].policy &&
@@ -171,7 +181,7 @@ POLICY PREDICTOR::get_policy(uint64_t pc)
 }
 
 /**
- * add_entry - Add an entry in the predictor for pc.
+ * add_entry - Add an entry in the predictor for pc, on a miss.
  * If an entry already exists, simply increments the corresponding
  * counter. Otherwise tries to find and initialize a fresh entry.
  * Returns the corresponding index if a merged or fresh entry is found/
@@ -179,6 +189,10 @@ POLICY PREDICTOR::get_policy(uint64_t pc)
  */
 int PREDICTOR::add_entry(uint64_t pc)
 {
+  // If we are using a global overriding policy, no need to do anything
+  if (global_override_policy != DYNAMIC)
+    return -1;
+
   POLICY default_policy = get_default_policy();
   int free_index = -1;
   for (int i = 0; i < 1024; i++) {
@@ -209,8 +223,49 @@ int PREDICTOR::add_entry(uint64_t pc)
  */
 void PREDICTOR::update_hit(int index)
 {
+  // If we are using a global overriding policy, no need to do anything
+  if (global_override_policy != DYNAMIC)
+    return;
+
   if (pred_entries[index].counter)
     pred_entries[index].counter--;
+}
+
+/**
+ * update_miss - Update the predictor of an LLC miss caused by
+ * an instruction with IP=pc.
+ * If there exists a matching entry in the table for this pc,
+ * the global counter is accordingly adjusted keeping in
+ * mind the policy this pc was following.
+ * We separate this function from add_entry, since if we choose to
+ * bypass, we will want to call update_miss but not add_entry.
+ */
+void PREDICTOR::update_miss(uint64_t pc)
+{
+  // If we are using a global overriding policy, no need to do anything
+  // Also, pc=0 indicates a prefetch miss
+  if (global_override_policy != DYNAMIC || (!pc))
+    return;
+
+  POLICY default_policy = get_default_policy();
+
+  for (int i = 0; i < 1024; i++) {
+    if (pred_entries[i].pc == pc && default_policy == pred_entries[i].policy &&
+     pred_entries[i].num_entries) {
+      // Look at the MSB of the counter
+      if ((pred_entries[i].counter >> 5) & 1) {
+        // We were bypassing -- decrement the global counter
+        // to make the default policy more LRU-like
+        if (default_policy_counter)
+          default_policy_counter--;
+      } else {
+        // We were using LRU -- increment the global counter
+        if (default_policy_counter < ((1 << 10) - 1))
+          default_policy_counter++;
+      }
+      break;
+    } 
+  }
 }
 
 /**
@@ -223,6 +278,10 @@ void PREDICTOR::update_hit(int index)
  */
 void PREDICTOR::update_evicted(int index, bool reuse)
 {
+  // If we are using a global overriding policy, no need to do anything
+  if (global_override_policy != DYNAMIC)
+    return;
+
   if (--pred_entries[index].num_entries == 0) {
     // No more users of this entry -- mark invalid
     pred_entries[index].pc = (uint64_t)(-1);

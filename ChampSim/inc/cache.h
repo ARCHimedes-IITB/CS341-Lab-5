@@ -109,7 +109,7 @@ public:
 
   // ------------ MadCache ------------- //
 
-  // predictor
+  // predictor 
   PREDICTOR predictor;
 
   // constructor
@@ -157,6 +157,9 @@ public:
     pf_useful = 0;
     pf_useless = 0;
     pf_fill = 0;
+
+    // MadCache - Uncomment the line below to use LRU
+    // predictor.set_override_policy(LRU);
   };
 
   // destructor
@@ -242,16 +245,15 @@ public:
 
   // ------------ MadCache ------------- //
 
-  /**
-   * is_tracker_set - Returns true iff the passed address corresponds to
-   * a tracker set. Called to know whether we should do accounting for this
-   * access. For now we simple use the 4 LSBs of the index bits to decide.
-   */
-  inline bool is_tracker_set(uint64_t address)
-  {
-    // Return true if last 4 bits of index = 0x1001 - Roughly 1/16 chance
-    return ((get_set(address) & 0xF) == 9);
-  }
+  inline bool is_tracker_set(uint32_t set);
+  inline bool should_bypass(uint64_t pc);
 };
+
+// RNG - We use a different instantiation of the RNG for cache.h/cc than the one 
+// used in main.cc, since we **dont** want to change the (random) va->pa mappings
+// Refer to class RANDOM in champsim.h, and the code in main.cc that performs
+// the mapping.
+// Using seed - 23
+static RANDOM cache_rng(23);
 
 #endif
