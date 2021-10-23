@@ -22,20 +22,20 @@
 #define DEGREE_LOWER 3
 #define DEGREE_UPPER 3
 
-IP_TRACKER trackers[IP_TRACKER_COUNT];
+IP_TRACKER trackers_l2c[IP_TRACKER_COUNT];
 
 void CACHE::l2c_prefetch_throttle(uint64_t ip, int type) {
   for (int i = 0; i < IP_TRACKER_COUNT; i++) {
-    if (trackers[i].ip == ip) {
+    if (trackers_l2c[i].ip == ip) {
       if (type == 0)
-        trackers[i].pf_useless++;
+        trackers_l2c[i].pf_useless++;
       else
-        trackers[i].pf_useful++;
+        trackers_l2c[i].pf_useful++;
 
-      if ( (trackers[i].pf_useless + trackers[i].pf_useful) * ACCURACY_TH > trackers[i].pf_useful )
-        trackers[i].degree = DEGREE_LOWER;
+      if ( (trackers_l2c[i].pf_useless + trackers_l2c[i].pf_useful) * ACCURACY_TH > trackers_l2c[i].pf_useful )
+        trackers_l2c[i].degree = DEGREE_LOWER;
       else
-        trackers[i].degree = DEGREE_UPPER;
+        trackers_l2c[i].degree = DEGREE_UPPER;
 
       break;
     }
@@ -45,8 +45,8 @@ void CACHE::l2c_prefetch_throttle(uint64_t ip, int type) {
 void CACHE::l2c_prefetcher_initialize() {
   cout << "CPU " << cpu << " L2C IP-based stride prefetcher" << endl;
   for (int i = 0; i < IP_TRACKER_COUNT; i++){
-    trackers[i].lru = i;
-    trackers[i].degree = DEGREE_UPPER;
+    trackers_l2c[i].lru = i;
+    trackers_l2c[i].degree = DEGREE_UPPER;
   }
 }
 
@@ -58,7 +58,7 @@ uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
 
   int index = -1;
   for (index = 0; index < IP_TRACKER_COUNT; index++) {
-    if (trackers[index].ip == ip)
+    if (trackers_l2c[index].ip == ip)
       break;
   }
 
@@ -66,23 +66,23 @@ uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
   if (index == IP_TRACKER_COUNT) {
 
     for (index = 0; index < IP_TRACKER_COUNT; index++) {
-      if (trackers[index].lru == (IP_TRACKER_COUNT - 1))
+      if (trackers_l2c[index].lru == (IP_TRACKER_COUNT - 1))
         break;
     }
 
-    trackers[index].ip = ip;
-    trackers[index].last_cl_addr = cl_addr;
-    trackers[index].last_stride = 0;
+    trackers_l2c[index].ip = ip;
+    trackers_l2c[index].last_cl_addr = cl_addr;
+    trackers_l2c[index].last_stride = 0;
 
     // cout << "[IP_STRIDE] MISS index: " << index << " lru: " <<
-    // trackers[index].lru << " ip: " << hex << ip << " cl_addr: " << cl_addr <<
+    // trackers_l2c[index].lru << " ip: " << hex << ip << " cl_addr: " << cl_addr <<
     // dec << endl;
 
     for (int i = 0; i < IP_TRACKER_COUNT; i++) {
-      if (trackers[i].lru < trackers[index].lru)
-        trackers[i].lru++;
+      if (trackers_l2c[i].lru < trackers_l2c[index].lru)
+        trackers_l2c[i].lru++;
     }
-    trackers[index].lru = 0;
+    trackers_l2c[index].lru = 0;
 
     return metadata_in;
   }
@@ -96,15 +96,15 @@ uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
   // this bit appears overly complicated because we're calculating
   // differences between unsigned address variables
   int64_t stride = 0;
-  if (cl_addr > trackers[index].last_cl_addr)
-    stride = cl_addr - trackers[index].last_cl_addr;
+  if (cl_addr > trackers_l2c[index].last_cl_addr)
+    stride = cl_addr - trackers_l2c[index].last_cl_addr;
   else {
-    stride = trackers[index].last_cl_addr - cl_addr;
+    stride = trackers_l2c[index].last_cl_addr - cl_addr;
     stride *= -1;
   }
 
   // cout << "[IP_STRIDE] HIT  index: " << index << " lru: " <<
-  // trackers[index].lru << " ip: " << hex << ip << " cl_addr: " << cl_addr <<
+  // trackers_l2c[index].lru << " ip: " << hex << ip << " cl_addr: " << cl_addr <<
   // dec << " stride: " << stride << endl;
 
   // don't do anything if we somehow saw the same address twice in a row
@@ -113,10 +113,10 @@ uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
 
   // only do any prefetching if there's a pattern of seeing the same
   // stride more than once
-  if (stride == trackers[index].last_stride) {
+  if (stride == trackers_l2c[index].last_stride) {
 
     // do some prefetching
-    for (int i = 0; i < trackers[index].degree; i++) {
+    for (int i = 0; i < trackers_l2c[index].degree; i++) {
       uint64_t pf_address = (cl_addr + (stride * (i + 1))) << LOG2_BLOCK_SIZE;
 
       // only issue a prefetch if the prefetch address is in the same 4 KB page
@@ -133,14 +133,14 @@ uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
     }
   }
 
-  trackers[index].last_cl_addr = cl_addr;
-  trackers[index].last_stride = stride;
+  trackers_l2c[index].last_cl_addr = cl_addr;
+  trackers_l2c[index].last_stride = stride;
 
   for (int i = 0; i < IP_TRACKER_COUNT; i++) {
-    if (trackers[i].lru < trackers[index].lru)
-      trackers[i].lru++;
+    if (trackers_l2c[i].lru < trackers_l2c[index].lru)
+      trackers_l2c[i].lru++;
   }
-  trackers[index].lru = 0;
+  trackers_l2c[index].lru = 0;
 
   return metadata_in;
 }
