@@ -94,9 +94,8 @@ void CACHE::handle_fill() {
     // Find out what to do with this miss
     // One exception: if the miss' fill_level is not less than FILL_LLC,
     // we most probably have a prefetch. These should never bypass the LLC.
-    // Also, skip if entry is invalid.
     if (cache_type == IS_LLC && MSHR.entry[mshr_index].fill_level < fill_level && 
-      block[set][way].valid && should_bypass(MSHR.entry[mshr_index].ip)) {
+      should_bypass(MSHR.entry[mshr_index].ip)) {
       // We do NOT update replacement state here, unlike the commented out
       // code segment above: this should **not** be done as it messes with
       // the LRU policy.
@@ -156,18 +155,20 @@ void CACHE::handle_fill() {
           writeback_packet.event_cycle = current_core_cycle[fill_cpu];
 
           lower_level->add_wq(&writeback_packet);
+
+          // MadCache - update the predictor state
+          // This eviction was caused by a miss if and only if
+          // the MSHR entry's fill level was < FILL_LLC
+          if (cache_type == IS_LLC && is_tracker_set(MSHR.entry[mshr_index].address,false)) {
+            bool took_miss = MSHR.entry[mshr_index].fill_level < fill_level;
+            predictor.update_evicted(block[set][way].pc_pred_index, 
+              block[set][way].reuse, took_miss);
+          }
         }
       }
     }
 
     if (do_fill) {
-      // Regardless of whether the line was dirty, as long as it was valid
-      // we need to update state at the LLC
-      if (cache_type == IS_LLC && block[set][way].valid && 
-        block[set][way].pc_pred_index != -1) 
-        predictor.update_evicted(block[set][way].pc_pred_index, 
-          block[set][way].reuse);
-
       // update prefetcher
       if (cache_type == IS_L1I)
         l1i_prefetcher_cache_fill(
@@ -478,11 +479,11 @@ void CACHE::handle_writeback() {
         if (do_fill) {
 
           // MadCache - whether we chose to write the evicted line back
-          // or not, we need to update its state. 
-          if (cache_type == IS_LLC && is_tracker_set(set) &&
-            block[set][way].valid)
+          // or not, we need to update its state. This eviction was not
+          // caused by a (read) miss.
+          if (cache_type == IS_LLC && is_tracker_set(set,true))
             predictor.update_evicted(block[set][way].pc_pred_index, 
-              block[set][way].reuse);
+              block[set][way].reuse, false);
 
           // update prefetcher
           if (cache_type == IS_L1I)
@@ -680,6 +681,14 @@ void CACHE::handle_read() {
         reads_available_this_cycle--;
       } else { // read miss
 
+        DP(if (warmup_complete[read_cpu]) {
+          cout << "[" << NAME << "] " << __func__ << " read miss";
+          cout << " instr_id: " << RQ.entry[index].instr_id
+               << " address: " << hex << RQ.entry[index].address;
+          cout << " full_addr: " << RQ.entry[index].full_addr << dec;
+          cout << " cycle: " << RQ.entry[index].event_cycle << endl;
+        });
+
         // check mshr
         uint8_t miss_handled = 1;
         int mshr_index = check_mshr(&RQ.entry[index]);
@@ -809,11 +818,6 @@ void CACHE::handle_read() {
         }
 
         if (miss_handled) {
-          // MadCache -- We need to update our predictor state if this miss
-          // would have mapped to a tracker set.
-          if (cache_type == IS_LLC && is_tracker_set(set))
-            predictor.update_miss(RQ.entry[index].ip);
-
           // update prefetcher on load instruction
           if (RQ.entry[index].type == LOAD) {
             if (cache_type == IS_L1I)
@@ -932,6 +936,15 @@ void CACHE::handle_prefetch() {
         reads_available_this_cycle--;
       } else { // prefetch miss
 
+        DP(if (warmup_complete[prefetch_cpu]) {
+          cout << "[" << NAME << "] " << __func__ << " prefetch miss";
+          cout << " instr_id: " << PQ.entry[index].instr_id
+               << " address: " << hex << PQ.entry[index].address;
+          cout << " full_addr: " << PQ.entry[index].full_addr << dec
+               << " fill_level: " << PQ.entry[index].fill_level;
+          cout << " cycle: " << PQ.entry[index].event_cycle << endl;
+        });
+
         // check mshr
         uint8_t miss_handled = 1;
         int mshr_index = check_mshr(&PQ.entry[index]);
@@ -942,6 +955,17 @@ void CACHE::handle_prefetch() {
           miss_handled = 0;
         } else if ((mshr_index == -1) &&
                    (MSHR.occupancy < MSHR_SIZE)) { // this is a new miss
+
+          DP(if (warmup_complete[PQ.entry[index].cpu]) {
+            cout << "[" << NAME << "_PQ] " << __func__
+                 << " want to add instr_id: " << PQ.entry[index].instr_id
+                 << " address: " << hex << PQ.entry[index].address;
+            cout << " full_addr: " << PQ.entry[index].full_addr << dec;
+            cout << " occupancy: "
+                 << lower_level->get_occupancy(3, PQ.entry[index].address)
+                 << " SIZE: "
+                 << lower_level->get_size(3, PQ.entry[index].address) << endl;
+          });
 
           // first check if the lower level PQ is full or not
           // this is possible since multiple prefetchers can exist at each level
@@ -1026,6 +1050,16 @@ void CACHE::handle_prefetch() {
             }
 
             MSHR_MERGED[PQ.entry[index].type]++;
+
+            DP(if (warmup_complete[prefetch_cpu]) {
+              cout << "[" << NAME << "] " << __func__ << " mshr merged";
+              cout << " instr_id: " << PQ.entry[index].instr_id
+                   << " prior_id: " << MSHR.entry[mshr_index].instr_id;
+              cout << " address: " << hex << PQ.entry[index].address;
+              cout << " full_addr: " << PQ.entry[index].full_addr << dec
+                   << " fill_level: " << MSHR.entry[mshr_index].fill_level;
+              cout << " cycle: " << MSHR.entry[mshr_index].event_cycle << endl;
+            });
           } else { // WE SHOULD NOT REACH HERE
             cerr << "[" << NAME << "] MSHR errors" << endl;
             assert(0);
@@ -1033,6 +1067,16 @@ void CACHE::handle_prefetch() {
         }
 
         if (miss_handled) {
+
+          DP(if (warmup_complete[prefetch_cpu]) {
+            cout << "[" << NAME << "] " << __func__ << " prefetch miss handled";
+            cout << " instr_id: " << PQ.entry[index].instr_id
+                 << " address: " << hex << PQ.entry[index].address;
+            cout << " full_addr: " << PQ.entry[index].full_addr << dec
+                 << " fill_level: " << PQ.entry[index].fill_level;
+            cout << " cycle: " << PQ.entry[index].event_cycle << endl;
+          });
+
           MISS[PQ.entry[index].type]++;
           ACCESS[PQ.entry[index].type]++;
 
@@ -1101,15 +1145,13 @@ void CACHE::fill_cache(uint32_t set, uint32_t way, PACKET *packet) {
   block[set][way].instr_id = packet->instr_id;
 
   // MadCache --  if this packet has a fill_level < than the one
-  // of our cache and we are the LLC, we are looking at a LD miss.
+  // of our cache and we are the LLC, we are looking at a load miss.
   // We should try to create an entry for this packet if it 
   // falls into a tracker set.
   block[set][way].reuse = false;
   if (cache_type == IS_LLC && packet->fill_level < fill_level &&
-    is_tracker_set(set))
+    is_tracker_set(set, true))
     block[set][way].pc_pred_index = predictor.add_entry(block[set][way].ip);
-  else
-    block[set][way].pc_pred_index = -1;
 }
 
 int CACHE::check_hit(PACKET *packet) {
@@ -1645,12 +1687,16 @@ void CACHE::increment_WQ_FULL(uint64_t address) { WQ.FULL++; }
 /**
  * is_tracker_set - Returns true iff the passed address corresponds to
  * a tracker set. Called to know whether we should do accounting for this
- * access. For now we simple use the 4 LSBs of the index bits to decide..
+ * access. For now we simple use the 4 LSBs of the index bits to decide.
+ * @is_set - Set to true if we are passing the set number instead of 
+ * the full address as argument.
  */
-bool CACHE::is_tracker_set(uint32_t set)
+bool CACHE::is_tracker_set(uint64_t address, bool is_set)
 {
   // Return true if last 4 bits of index = 0x1001 - Roughly 1/16 chance
-  return ((set & 0xF) == 9);
+  if (is_set)
+    return ((address & 0xF) == 9);
+  return ((get_set(address) & 0xF) == 9);
 }
 
 /**
