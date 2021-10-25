@@ -1,3 +1,0 @@
-IPC with LRU - 0.142776
-IPC with MadCache - 0.171424
-Corresponds to a 20.065% increase in IPC.
