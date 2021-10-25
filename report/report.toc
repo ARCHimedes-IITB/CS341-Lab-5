@@ -1,0 +1,9 @@
+\babel@toc {english}{}
+\babel@toc {english}{}
+\contentsline {chapter}{\numberline {1}Understanding the problem statement}{2}{chapter.1}%
+\contentsline {chapter}{\numberline {2}Implement LLC Bypassing}{3}{chapter.2}%
+\contentsline {chapter}{\numberline {3}Prefetching}{7}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Normalized IPC improvement wrt thresholds}{7}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Prefetcher coverage wrt thresholds}{7}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Source files edited or added}{7}{section.3.3}%
+\contentsline {chapter}{\numberline {4}Contributions}{8}{chapter.4}%
