@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.7.8)  25 OCT 2021 19:45
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.7.20)  26 OCT 2021 21:06
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -278,8 +278,20 @@ Package: babel 2020/02/14 3.40 The Babel package
 (/usr/share/texlive/texmf-dist/tex/generic/babel/switch.def
 File: switch.def 2020/02/14 3.40 Babel switching mechanism
 )
-(/usr/share/texlive/texmf-dist/tex/generic/babel-swedish/swedish.ldf
-Language: swedish 2005/03/31 v2.3d Swedish support from the babel system
+
+! Package babel Error: Unknown option `swedish'. Either you misspelled it
+(babel)                or the language definition file swedish.ldf was not foun
+d.
+
+See the babel package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.542 \ProcessOptions*
+                      
+? 
+(/usr/share/texlive/texmf-dist/tex/generic/babel-english/english.ldf
+Language: english 2017/06/06 v3.3r English support from the babel system
 
 (/usr/share/texlive/texmf-dist/tex/generic/babel/babel.def
 File: babel.def 2020/02/14 3.40 Babel common definitions
@@ -290,16 +302,16 @@ File: babel.def 2020/02/14 3.40 Babel common definitions
 \bbl@readstream=\read2
 \bbl@dirlevel=\count275
 )
-Package babel Info: Making " an active character on input line 90.
-)
-(/usr/share/texlive/texmf-dist/tex/generic/babel-english/english.ldf
-Language: english 2017/06/06 v3.3r English support from the babel system
+Package babel Info: \l@british = using hyphenrules for english
+(babel)             (\language0) on input line 82.
+Package babel Info: \l@UKenglish = using hyphenrules for english
+(babel)             (\language0) on input line 83.
 Package babel Info: \l@canadian = using hyphenrules for english
 (babel)             (\language0) on input line 102.
-Package babel Info: \l@australian = using hyphenrules for ukenglish
-(babel)             (\language80) on input line 105.
-Package babel Info: \l@newzealand = using hyphenrules for ukenglish
-(babel)             (\language80) on input line 108.
+Package babel Info: \l@australian = using hyphenrules for english
+(babel)             (\language0) on input line 105.
+Package babel Info: \l@newzealand = using hyphenrules for english
+(babel)             (\language0) on input line 108.
 ))
 (/usr/share/texlive/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty
 Package: fancyhdr 2019/01/31 v3.10 Extensive control of page headers and footer
@@ -442,7 +454,7 @@ Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
 )
 \Hy@SectionHShift=\skip70
 )
-No file report.aux.
+(./report.aux)
 \openout1 = `report.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 80.
@@ -461,6 +473,7 @@ LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 80.
 LaTeX Font Info:    ... okay on input line 80.
 LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 80.
 LaTeX Font Info:    ... okay on input line 80.
+
 (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count287
@@ -537,6 +550,8 @@ Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 LaTeX Info: Redefining \ref on input line 80.
 LaTeX Info: Redefining \pageref on input line 80.
 LaTeX Info: Redefining \nameref on input line 80.
+
+(./report.out) (./report.out)
 \@outlinefile=\write3
 \openout3 = `report.out'.
 
@@ -547,11 +562,11 @@ LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 1
 File: t1cmtt.fd 2019/12/16 v2.5j Standard LaTeX font definitions
 )
 Package epstopdf Info: Source file: <images/iitb_logo/iitb_logo.eps>
-(epstopdf)                    date: 2021-10-21 20:38:19
+(epstopdf)                    date: 2021-10-26 13:20:56
 (epstopdf)                    size: 688430 bytes
 (epstopdf)             Output file: <images/iitb_logo/iitb_logo-eps-converted-t
 o.pdf>
-(epstopdf)                    date: 2021-10-21 20:38:19
+(epstopdf)                    date: 2021-10-26 13:20:56
 (epstopdf)                    size: 71063 bytes
 (epstopdf)             Command: <repstopdf --outfile=images/iitb_logo/iitb_logo
 -eps-converted-to.pdf images/iitb_logo/iitb_logo.eps>
@@ -559,11 +574,10 @@ o.pdf>
 Package epstopdf Info: Output file is already uptodate.
 
 
-pdfTeX warning: /usr/bin/pdflatex (file ./images/iitb_logo/iitb_logo-eps-conver
-ted-to.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> 
-allowed
-<images/iitb_logo/iitb_logo-eps-converted-to.pdf, id=4, 295.1025pt x 288.07625p
-t>
+pdfTeX warning: pdflatex (file ./images/iitb_logo/iitb_logo-eps-converted-to.pd
+f): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
+<images/iitb_logo/iitb_logo-eps-converted-to.pdf, id=36, 295.1025pt x 288.07625
+pt>
 File: images/iitb_logo/iitb_logo-eps-converted-to.pdf Graphic file (type pdf)
 <use images/iitb_logo/iitb_logo-eps-converted-to.pdf>
 Package pdftex.def Info: images/iitb_logo/iitb_logo-eps-converted-to.pdf  used 
@@ -575,7 +589,7 @@ on input line 118.
 
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map} <./images/iitb_logo/iitb_lo
-go-eps-converted-to.pdf>]
+go-eps-converted-to.pdf>] (./report.toc)
 \tf@toc=\write4
 \openout4 = `report.toc'.
 
@@ -587,73 +601,73 @@ go-eps-converted-to.pdf>]
 
 ]
 Chapter 1.
+
+Package hyperref Warning: Difference (2) between bookmark levels is greater 
+(hyperref)                than one, level fixed on input line 159.
+
 [2
 
-]
+] [3]
 Chapter 2.
-<images/predictor.png, id=37, 774.895pt x 901.3675pt>
+<images/predictor.png, id=82, 774.895pt x 901.3675pt>
 File: images/predictor.png Graphic file (type png)
 <use images/predictor.png>
-Package pdftex.def Info: images/predictor.png  used on input line 167.
+Package pdftex.def Info: images/predictor.png  used on input line 206.
 (pdftex.def)             Requested size: 296.58pt x 344.98512pt.
-[3
+[4
 
  <./images/predictor.png>]
-<images/newcacheline.png, id=46, 715.67375pt x 1143.27126pt>
+<images/newcacheline.png, id=90, 715.67375pt x 1143.27126pt>
 File: images/newcacheline.png Graphic file (type png)
 <use images/newcacheline.png>
-Package pdftex.def Info: images/newcacheline.png  used on input line 178.
+Package pdftex.def Info: images/newcacheline.png  used on input line 217.
 (pdftex.def)             Requested size: 296.58pt x 473.78583pt.
-<images/lifecycle.png, id=47, 866.23625pt x 708.6475pt>
+<images/lifecycle.png, id=91, 866.23625pt x 708.6475pt>
 File: images/lifecycle.png Graphic file (type png)
 <use images/lifecycle.png>
-Package pdftex.def Info: images/lifecycle.png  used on input line 186.
+Package pdftex.def Info: images/lifecycle.png  used on input line 225.
 (pdftex.def)             Requested size: 395.4375pt x 323.4948pt.
- [4 <./images/newcacheline.png>] [5 <./images/lifecycle.png>] [6]
+ [5 <./images/newcacheline.png>] [6 <./images/lifecycle.png>] [7]
 Chapter 3.
-[7
-
-]
-Chapter 4.
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 233.
 [8
 
 ]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 233.
+Chapter 4.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 272.
+[9
+
+]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 272.
  (./report.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 233.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 233.
-
-
-Package rerunfilecheck Warning: File `report.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `report.out':
-(rerunfilecheck)             Before: <no file>
-(rerunfilecheck)             After:  6747F753DA6ADB7B90A63AC2DA403900;463.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 272.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 272.
+Package rerunfilecheck Info: File `report.out' has not changed.
+(rerunfilecheck)             Checksum: 5D85C0118640289BC8B162B3FD250991;536.
  ) 
 Here is how much of TeX's memory you used:
- 10251 strings out of 481239
- 160447 string characters out of 5920378
- 539701 words of memory out of 5000000
- 25275 multiletter control sequences out of 15000+600000
+ 10208 strings out of 483183
+ 159645 string characters out of 5966292
+ 534364 words of memory out of 5000000
+ 24974 multiletter control sequences out of 15000+600000
  546371 words of font info for 51 fonts, out of 8000000 for 9000
- 1141 hyphenation exceptions out of 8191
- 48i,11n,46p,1106b,397s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-t1.enc}{/usr/share/texmf/
-fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/share/texmf/fonts/type1/public/
-cm-super/sfbx1095.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfbx1200.pf
-b></usr/share/texmf/fonts/type1/public/cm-super/sfbx1440.pfb></usr/share/texmf/
-fonts/type1/public/cm-super/sfbx1728.pfb></usr/share/texmf/fonts/type1/public/c
-m-super/sfbx2074.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfbx2488.pfb
-></usr/share/texmf/fonts/type1/public/cm-super/sfrm1095.pfb></usr/share/texmf/f
-onts/type1/public/cm-super/sfrm1200.pfb></usr/share/texmf/fonts/type1/public/cm
--super/sfti1095.pfb></usr/share/texmf/fonts/type1/public/cm-super/sftt1095.pfb>
-Output written on report.pdf (10 pages, 1240250 bytes).
+ 14 hyphenation exceptions out of 8191
+ 48i,11n,46p,1106b,529s stack positions out of 5000i,500n,10000p,200000b,80000s
+ </home/harshit/.texlive2019/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1440.6
+00pk> </home/harshit/.texlive2019/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm109
+5.600pk> </home/harshit/.texlive2019/texmf-var/fonts/pk/ljfour/jknappen/ec/ecti
+1095.600pk> </home/harshit/.texlive2019/texmf-var/fonts/pk/ljfour/jknappen/ec/e
+cbx1095.600pk> </home/harshit/.texlive2019/texmf-var/fonts/pk/ljfour/jknappen/e
+c/ecbx1728.600pk> </home/harshit/.texlive2019/texmf-var/fonts/pk/ljfour/jknappe
+n/ec/ectt1095.600pk> </home/harshit/.texlive2019/texmf-var/fonts/pk/ljfour/jkna
+ppen/ec/ecrm1095.600pk> </home/harshit/.texlive2019/texmf-var/fonts/pk/ljfour/j
+knappen/ec/ecbx1200.600pk> </home/harshit/.texlive2019/texmf-var/fonts/pk/ljfou
+r/jknappen/ec/ecbx2074.600pk> </home/harshit/.texlive2019/texmf-var/fonts/pk/lj
+four/jknappen/ec/ecbx2488.600pk> </home/harshit/.texlive2019/texmf-var/fonts/pk
+/ljfour/jknappen/ec/ecrm1200.600pk>
+Output written on report.pdf (11 pages, 1162806 bytes).
 PDF statistics:
- 124 PDF objects out of 1000 (max. 8388607)
- 93 compressed objects within 1 object stream
- 24 named destinations out of 1000 (max. 500000)
- 21 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 478 PDF objects out of 1000 (max. 8388607)
+ 141 compressed objects within 2 object streams
+ 26 named destinations out of 1000 (max. 500000)
+ 85 words of extra memory for PDF output out of 10000 (max. 10000000)
 

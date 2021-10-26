@@ -156,6 +156,45 @@ Summarize the objective of the lab, what experiments you have conducted, what we
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Understanding the problem statement}
 
+\subsection{Understanding the code}
+\begin{itemize}
+    \item The \texttt{handle\_read} function is responsible for reading a query from the read queue and processing it.\\
+    A read hit means that the line requested is present in the cache. So, the data is read from the cache itself. Following are the things that are done on a hit:
+    \begin{itemize}
+        \item Get a read request from the read queue \texttt{RQ}. If no read request, return.
+        \item Get the set and the way corresponding to the request address. For a hit, there must be a way with same address as the requested one. This is done using the \texttt{get\_set} and \texttt{check\_hit} functions.
+        \item Read the data and update it in the packet that we got from the read queue.
+        \item If it is a load request, update the prefetcher using the prefetcher\_operate functions
+        \item Update the replacement policy using the update\_replacement\_policy functions. aThis corresponds to bringing the accessed block to MRU position in the LRU scheme.
+        \item Mark the entry in the MSHR of higher level as completed and add the data to it. This is done using the \texttt{return\_data} function for the correct upper level cache. Notice that for L1D, L1I, ITLB and DTLB do not have a higher level cache. Istead, they put the data in the PROCESSING queue.
+        \item Update the statistics like number of hits and number of accesses.
+    \end{itemize}
+    \item A read miss means that the line requested is not present in the cache. In such a case, we do the following:(skipping over getting the query and detecting a miss as it is same as hit)
+    \begin{itemize}
+        \item First we need to check if there is a read request for the same address already in MSHR or not. If there is we can merge the requests. This is done using the \texttt{check\_mshr} function.
+        \begin{itemize}
+            \item If the address is not in MSHR, we need to add a new entry in MSHR and read queue of the lower level. Adding to MSHR is done using \texttt{add\_mshr} function. Adding to the lower level's read queue is done using \texttt{lower\_level->add\_rq} function. (This function also checks if the request can be served from the write queue or not and adds the request to read queue only if it can't be done)\\
+            During the above operations, we need to ensure that we don't exceed the size of MSHR's and the queues. If this is the case, we must stall.
+            \item If the address is in MSHR, we need to merge the requests.\\
+            There is a member set named  \texttt{index\_depend\_on\_me} (different sets for load, store and instruction) in teh \texttt{PACKET} class. This set stores the index of all the requests depending on it. Merging indices amounts to joining the correct sets from request to MSHR entry and insert the index of request to the MSHR entry.
+        \end{itemize}
+        \item Update statistics like number of misses, number of MSHR entries merged etc.
+    \end{itemize}
+    \item The \texttt{handle\_fill} function is responsible for processing the completed requests in MSHR and put the data in correct position in the cache. Any function serving a read request uses \texttt{return\_data} which only adds the data to the MSHR entry for that address. But we need the data in cache and not in MSHR. The work of getting the data from MSHR and writing to cache is done by \texttt{handle\_fill}. That is why it needs to read (completed) request from MSHR.
+    \item The lower\_level, upper\_level data members are declared in teh MEMORY class. Since CACHE class inherits from MEMORY, it also has these data members. They are assigned in \texttt{main.cc} in the \texttt{main} function for all the caches.\\
+    These are arrays which store pointer to the next lower or next higher cache in the memory hierarchy (if they do not exist, then set to NULL). Since we have different instruction and data cache at L1, we need 2 different upper\_level cache array, one for data and one for instruction. So, for example for L2 cache, the values are:\\
+    ooo\_cpu[i].upper\_level\_icache = ooo\_cpu[i].L1I\\
+    ooo\_cpu[i].upper\_level\_dcache = ooo\_cpu[i].L1D\\
+    ooo\_cpu[i].lower\_level = uncore.LLC\\
+    Notice that L1D, L1I, L2 and the TLBs are CPU specific while the LLC and DRAM are shared. 
+    \item The \texttt{return\_data} function is responsible for adding the data in an MSHR entry and marking it as completed. It takes a PACKET object as argument which stores the address and data. The basic workflow is: 
+    \begin{itemize}
+        \item Find the MSHR entry with the same address as the one mentioned in the given packet. This is done using \texttt{check\_mshr} function. If it does not exist, return error
+        \item Mark the MSHR entry as completed(setting returned to COMPLETED) and add the data and metadata to the MSHR entry.
+        \item Update the metrics like number of requests returned and latency
+        \item Update \texttt{next\_fill\_index} using \texttt{update\_fill\_cycle} function. This index is the index from which \texttt{read\_fill} reads the request to be written in the cache.
+    \end{itemize}
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Implement LLC Bypassing
