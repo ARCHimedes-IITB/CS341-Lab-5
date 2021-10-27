@@ -65,7 +65,7 @@ def colorize(d):
     
     return d
 
-if __name__ == '__main__':
+def main():
     accuracies = defaultdict(lambda: defaultdict(float))
     ipcs = defaultdict(lambda: defaultdict(float))
     coverage = defaultdict(lambda: defaultdict(float))
@@ -82,6 +82,11 @@ if __name__ == '__main__':
         json.dump(ipcs, f, indent = 4)
     with open('coverage.json', 'w') as f:
         json.dump(coverage, f, indent = 4)
+    
+    return accuracies, ipcs, coverage
+
+if __name__ == '__main__':
+    accuracies, ipcs, coverage = main()
 
     table = pd.DataFrame(colorize(ipcs))
     print("\n"+"-"*22+"IPCs"+"-"*22+"\n", tabulate(table, headers='keys', tablefmt='psql'))
