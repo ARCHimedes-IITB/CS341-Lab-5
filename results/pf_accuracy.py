@@ -76,8 +76,6 @@ if __name__ == '__main__':
     ipcs = flipDict(ipcs)
     coverage = flipDict(coverage)
 
-    print(accuracies)
-
     with open('accuracies.json', 'w') as f:
         json.dump(accuracies, f, indent = 4)
     with open('ipcs.json', 'w') as f:
