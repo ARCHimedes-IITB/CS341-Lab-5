@@ -657,6 +657,7 @@ void CACHE::handle_read() {
         // update prefetch stats and reset prefetch bit
         if (block[set][way].prefetch) {
           pf_useful++;
+          // Update the history for the current ip
           if (cache_type == IS_L1D)
             l1d_prefetch_throttle(block[set][way].ip, 1);
           else if (cache_type == IS_L2C)
@@ -1163,6 +1164,7 @@ void CACHE::fill_cache(uint32_t set, uint32_t way, PACKET *packet) {
 #endif
   if (block[set][way].prefetch && (block[set][way].used == 0)) {
     pf_useless++;
+    // Update the history for the current ip
     if (cache_type == IS_L1D)
       l1d_prefetch_throttle(block[set][way].ip, 0);
     else if (cache_type == IS_L2C)

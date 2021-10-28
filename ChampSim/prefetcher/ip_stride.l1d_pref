@@ -4,25 +4,32 @@
 #include "ip_stride.h"
 
 #define IP_TRACKER_COUNT 1024
-// #define PREFETCH_DEGREE 3
 #define ACCURACY_TH 0.25
+#define DEGREE_INIT 3
 #define DEGREE_LOWER 5
 #define DEGREE_UPPER 7
 
 IP_TRACKER trackers_l1d[IP_TRACKER_COUNT];
 
 void CACHE::l1d_prefetch_throttle(uint64_t ip, int type) {
+
+  // Iterate over all entries in the table to find a matching ip
   for (int i = 0; i < IP_TRACKER_COUNT; i++) {
     if (trackers_l1d[i].ip == ip) {
-      if (type == 0)
+
+      if (type == 0) // indicates a useless prefetch
         trackers_l1d[i].pf_useless++;
       else
         trackers_l1d[i].pf_useful++;
 
-      if ( (trackers_l1d[i].pf_useless + trackers_l1d[i].pf_useful) * ACCURACY_TH > trackers_l1d[i].pf_useful )
-        trackers_l1d[i].degree = DEGREE_LOWER;
-      else
-        trackers_l1d[i].degree = DEGREE_UPPER;
+      // Change degree based on whether acc > threshold only when total > 0, else remains degree_init
+      int total = trackers_l1d[i].pf_useless + trackers_l1d[i].pf_useful;
+      if (total > 0){
+        if (total * ACCURACY_TH > trackers_l1d[i].pf_useful)
+          trackers_l1d[i].degree = DEGREE_LOWER;
+        else
+          trackers_l1d[i].degree = DEGREE_UPPER;
+      }
 
       break;
     }
@@ -33,7 +40,7 @@ void CACHE::l1d_prefetcher_initialize() {
   cout << "CPU " << cpu << " L1D IP-based stride prefetcher" << endl;
   for (int i = 0; i < IP_TRACKER_COUNT; i++){
     trackers_l1d[i].lru = i;
-    trackers_l1d[i].degree = DEGREE_UPPER;
+    trackers_l1d[i].degree = DEGREE_INIT;
   }
 }
 
@@ -61,7 +68,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
     trackers_l1d[index].last_stride = 0;
 
     // Reset throttling parameters
-    trackers_l1d[index].degree = DEGREE_UPPER;
+    trackers_l1d[index].degree = DEGREE_INIT;
     trackers_l1d[index].pf_useful = 0;
     trackers_l1d[index].pf_useless = 0;
 
@@ -106,7 +113,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
   // stride more than once
   if (stride == trackers_l1d[index].last_stride) {
 
-    // do some prefetching
+    // do some prefetching based on the ip's degree
     for (int i = 0; i < trackers_l1d[index].degree; i++) {
       uint64_t pf_address = (cl_addr + (stride * (i + 1))) << LOG2_BLOCK_SIZE;
 
@@ -115,17 +122,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
       if ((pf_address >> LOG2_PAGE_SIZE) != (addr >> LOG2_PAGE_SIZE))
         break;
 
-      /*
-      (THIS PART HAS BEEN CHANGED FROM ip_stride.l2_pref)
-      // check the MSHR occupancy to decide if we're going to prefetch to the L2
-      // or LLC
-      if (MSHR.occupancy < (MSHR.SIZE >> 1))
-        prefetch_line(ip, addr, pf_address, FILL_L2, 0);
-      else
-        prefetch_line(ip, addr, pf_address, FILL_LLC, 0);
-      */
-
-      // (THIS PART HAS BEEN CHANGED FROM ip_stride.l2_pref)
+      // (This part has been changed from ip_stride.l2_pref)
       // check the MSHR occupancy to decide if we're going to prefetch to the L1
       // or L2
       if (MSHR.occupancy < (MSHR.SIZE >> 1))

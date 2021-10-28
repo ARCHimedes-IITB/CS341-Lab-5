@@ -17,36 +17,44 @@
 #include "ip_stride.h"
 
 #define IP_TRACKER_COUNT 1024
-// #define PREFETCH_DEGREE 3
 #define ACCURACY_TH 0.25
-#define DEGREE_LOWER 16
+#define DEGREE_INIT 3
+#define DEGREE_LOWER 1
 #define DEGREE_UPPER 16
 
 IP_TRACKER trackers_l2c[IP_TRACKER_COUNT];
 
 void CACHE::l2c_prefetch_throttle(uint64_t ip, int type) {
+
+  // Iterate over all entries in the table to find a matching ip
   for (int i = 0; i < IP_TRACKER_COUNT; i++) {
     if (trackers_l2c[i].ip == ip) {
-      if (type == 0)
+
+      if (type == 0) // indicates a useless prefetch
         trackers_l2c[i].pf_useless++;
       else
         trackers_l2c[i].pf_useful++;
 
-      if ( (trackers_l2c[i].pf_useless + trackers_l2c[i].pf_useful) * ACCURACY_TH > trackers_l2c[i].pf_useful )
-        trackers_l2c[i].degree = DEGREE_LOWER;
-      else
-        trackers_l2c[i].degree = DEGREE_UPPER;
+      // Change degree based on whether acc > threshold only when total > 0, else remains degree_init
+      int total = trackers_l2c[i].pf_useless + trackers_l2c[i].pf_useful;
+      if (total > 0){
+        if (total * ACCURACY_TH > trackers_l2c[i].pf_useful)
+          trackers_l2c[i].degree = DEGREE_LOWER;
+        else
+          trackers_l2c[i].degree = DEGREE_UPPER;
+      }
 
       break;
     }
   }
+
 }
 
 void CACHE::l2c_prefetcher_initialize() {
   cout << "CPU " << cpu << " L2C IP-based stride prefetcher" << endl;
   for (int i = 0; i < IP_TRACKER_COUNT; i++){
     trackers_l2c[i].lru = i;
-    trackers_l2c[i].degree = DEGREE_UPPER;
+    trackers_l2c[i].degree = DEGREE_INIT;
   }
 }
 
@@ -75,7 +83,7 @@ uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
     trackers_l2c[index].last_stride = 0;
 
     // Reset throttling parameters
-    trackers_l2c[index].degree = DEGREE_UPPER;
+    trackers_l2c[index].degree = DEGREE_INIT;
     trackers_l2c[index].pf_useful = 0;
     trackers_l2c[index].pf_useless = 0;
 
@@ -120,7 +128,7 @@ uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
   // stride more than once
   if (stride == trackers_l2c[index].last_stride) {
 
-    // do some prefetching
+    // do some prefetching based on the ip's degree
     for (int i = 0; i < trackers_l2c[index].degree; i++) {
       uint64_t pf_address = (cl_addr + (stride * (i + 1))) << LOG2_BLOCK_SIZE;
 
