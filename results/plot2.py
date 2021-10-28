@@ -64,7 +64,7 @@ def readValues(file, cache):
     return accuracy, coverage, ipc
 
 def findAccuracies(cache, accuracies, coverage, ipcs):
-    path = join(FOLDER, cache)
+    path = join(FOLDER, "combined")
     for f in listdir(path):
         cur_path = join(path, f)
         if isfile(cur_path):
@@ -127,5 +127,5 @@ for cache in CACHES:
     plt.legend(labels=LABELS)
     plt.grid(linestyle='dotted', linewidth=1)
     # plt.show()
-    plt.savefig(f'{PLOT_DIR}/{cache}.png')
+    plt.savefig(f'{PLOT_DIR}/combined_{cache}.png')
    
