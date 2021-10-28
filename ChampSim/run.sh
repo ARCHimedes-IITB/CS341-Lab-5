@@ -7,4 +7,4 @@ RES=$1
 
 ./run_champsim.sh $BIN 10 10 trace.champsimtrace.xz
 
-mv results_10M/*.txt ../results/new_prefetch_throttling_result/L2C/$1.txt
+mv results_10M/*.txt ../results/new_prefetch_throttling_result/$1.txt

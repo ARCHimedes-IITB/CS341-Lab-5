@@ -6,9 +6,9 @@
 #define IP_TRACKER_COUNT 1024
 #define DEGREE_INIT 3
 
-#define ACCURACY_TH 0.5
-#define DEGREE_LOWER_BOUND 3
-#define DEGREE_UPPER_BOUND 3    // 4 6 8
+#define ACCURACY_TH 0.25
+#define DEGREE_LOWER_BOUND 1
+#define DEGREE_UPPER_BOUND 8    // 4 6 8
 #define NUM_ACCESSES 10
 
 IP_TRACKER trackers_l1d[IP_TRACKER_COUNT];
