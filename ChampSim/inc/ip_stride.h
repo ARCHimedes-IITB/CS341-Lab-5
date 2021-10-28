@@ -25,6 +25,9 @@ class IP_TRACKER {
   // degree for current IP
   int degree;
 
+  // number of times this IP has been accessed
+  uint64_t access_count;
+
   IP_TRACKER() {
     ip = 0;
     last_cl_addr = 0;
@@ -32,6 +35,7 @@ class IP_TRACKER {
     lru = 0;
     pf_useful = 0;
     pf_useless = 0;
+    access_count = 0;
   };
 
 };

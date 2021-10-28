@@ -5,11 +5,11 @@
 
 #define IP_TRACKER_COUNT 1024
 #define DEGREE_INIT 3
-#define THROTTLE_CONF 10 // update only if useful + useless is >= this 
 
 #define ACCURACY_TH 0.5 // for values > this, DEGREE_UPPER is set, for lower, DEGREE_LOWER is set
-#define DEGREE_LOWER 1
-#define DEGREE_UPPER 3
+#define DEGREE_LOWER_BOUND 1
+#define DEGREE_UPPER_BOUND 8    // 4 6 8
+#define NUM_ACCESSES 10
 
 IP_TRACKER trackers_l1d[IP_TRACKER_COUNT];
 
@@ -24,13 +24,15 @@ void CACHE::l1d_prefetch_throttle(uint64_t ip, int type) {
       else
         trackers_l1d[i].pf_useful++;
 
-      // Change degree based on whether acc > threshold only when total > 0, else remains degree_init
-      int total = trackers_l1d[i].pf_useless + trackers_l1d[i].pf_useful;
-      if (total >= THROTTLE_CONF){
-        if (total * ACCURACY_TH > trackers_l1d[i].pf_useful)
-          trackers_l1d[i].degree = DEGREE_LOWER;
+      trackers_l1d[i].access_count++;
+      if (trackers_l1d[i].access_count % NUM_ACCESSES == 0) {
+        // Change degree based on whether acc > threshold only when total > 0, else remains degree_init
+        int total = trackers_l1d[i].pf_useless + trackers_l1d[i].pf_useful;
+        
+        if (trackers_l1d[i].pf_useful > total * ACCURACY_TH)
+          trackers_l1d[i].degree += (trackers_l1d[i].degree == DEGREE_UPPER_BOUND) ? 0 : 1;
         else
-          trackers_l1d[i].degree = DEGREE_UPPER;
+          trackers_l1d[i].degree -= (trackers_l1d[i].degree == DEGREE_LOWER_BOUND) ? 0 : 1;
       }
 
       break;
