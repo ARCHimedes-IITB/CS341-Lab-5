@@ -1,5 +1,7 @@
 #include "cache.h"
 
+void CACHE::l1d_prefetch_throttle(uint64_t ip, int type) {}
+
 void CACHE::l1d_prefetcher_initialize() {}
 
 void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
