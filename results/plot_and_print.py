@@ -1,5 +1,5 @@
 FOLDER = 'new_prefetch_throttling_result'
-CACHES = ['L1D', 'L2C']
+CACHES = ['L1D', 'L2C', 'combined']
 PLOT_DIR = 'plots'
 DATA_DIR = 'data'
 
