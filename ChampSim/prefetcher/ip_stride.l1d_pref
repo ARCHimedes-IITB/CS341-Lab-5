@@ -1,0 +1,159 @@
+// Based on ip_stride.l2c_pref
+
+#include "cache.h"
+#include "ip_stride.h"
+
+#define IP_TRACKER_COUNT 1024
+#define DEGREE_INIT 3
+
+#define ACCURACY_TH 0.75
+#define DEGREE_LOWER_BOUND 1
+#define DEGREE_UPPER_BOUND 8    // 4 6 8
+#define NUM_ACCESSES 10
+
+IP_TRACKER trackers_l1d[IP_TRACKER_COUNT];
+
+void CACHE::l1d_prefetch_throttle(uint64_t ip, int type) {
+
+  // Iterate over all entries in the table to find a matching ip
+  for (int i = 0; i < IP_TRACKER_COUNT; i++) {
+    if (trackers_l1d[i].ip == ip) {
+
+      if (type == 0) // indicates a useless prefetch
+        trackers_l1d[i].pf_useless++;
+      else
+        trackers_l1d[i].pf_useful++;
+
+      trackers_l1d[i].access_count++;
+      if (trackers_l1d[i].access_count % NUM_ACCESSES == 0) {
+        
+        int total = trackers_l1d[i].pf_useless + trackers_l1d[i].pf_useful;
+        
+        if (trackers_l1d[i].pf_useful > total * ACCURACY_TH)
+          trackers_l1d[i].degree += (trackers_l1d[i].degree == DEGREE_UPPER_BOUND) ? 0 : 1;
+        else
+          trackers_l1d[i].degree -= (trackers_l1d[i].degree == DEGREE_LOWER_BOUND) ? 0 : 1;
+      }
+
+      break;
+    }
+  }
+}
+
+void CACHE::l1d_prefetcher_initialize() {
+  cout << "CPU " << cpu << " L1D IP-based stride prefetcher" << endl;
+  for (int i = 0; i < IP_TRACKER_COUNT; i++){
+    trackers_l1d[i].lru = i;
+    trackers_l1d[i].degree = DEGREE_INIT;
+  }
+}
+
+void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
+                                   uint8_t cache_hit, uint8_t type) {
+  // check for a tracker hit
+  uint64_t cl_addr = addr >> LOG2_BLOCK_SIZE;
+
+  int index = -1;
+  for (index = 0; index < IP_TRACKER_COUNT; index++) {
+    if (trackers_l1d[index].ip == ip)
+      break;
+  }
+
+  // this is a new IP that doesn't have a tracker yet, so allocate one
+  if (index == IP_TRACKER_COUNT) {
+
+    for (index = 0; index < IP_TRACKER_COUNT; index++) {
+      if (trackers_l1d[index].lru == (IP_TRACKER_COUNT - 1))
+        break;
+    }
+
+    trackers_l1d[index].ip = ip;
+    trackers_l1d[index].last_cl_addr = cl_addr;
+    trackers_l1d[index].last_stride = 0;
+
+    // Reset throttling parameters
+    trackers_l1d[index].degree = DEGREE_INIT;
+    trackers_l1d[index].pf_useful = 0;
+    trackers_l1d[index].pf_useless = 0;
+    trackers_l1d[index].access_count = 0;
+
+    // cout << "[IP_STRIDE] MISS index: " << index << " lru: " <<
+    // trackers_l1d[index].lru << " ip: " << hex << ip << " cl_addr: " << cl_addr <<
+    // dec << endl;
+
+    for (int i = 0; i < IP_TRACKER_COUNT; i++) {
+      if (trackers_l1d[i].lru < trackers_l1d[index].lru)
+        trackers_l1d[i].lru++;
+    }
+    trackers_l1d[index].lru = 0;
+
+    return;
+  }
+
+  // sanity check
+  // at this point we should know a matching tracker index
+  if (index == -1)
+    assert(0);
+
+  // calculate the stride between the current address and the last address
+  // this bit appears overly complicated because we're calculating
+  // differences between unsigned address variables
+  int64_t stride = 0;
+  if (cl_addr > trackers_l1d[index].last_cl_addr)
+    stride = cl_addr - trackers_l1d[index].last_cl_addr;
+  else {
+    stride = trackers_l1d[index].last_cl_addr - cl_addr;
+    stride *= -1;
+  }
+
+  // cout << "[IP_STRIDE] HIT  index: " << index << " lru: " <<
+  // trackers_l1d[index].lru << " ip: " << hex << ip << " cl_addr: " << cl_addr <<
+  // dec << " stride: " << stride << endl;
+
+  // don't do anything if we somehow saw the same address twice in a row
+  if (stride == 0)
+    return;
+
+  // only do any prefetching if there's a pattern of seeing the same
+  // stride more than once
+  if (stride == trackers_l1d[index].last_stride) {
+
+    // do some prefetching based on the ip's degree
+    for (int i = 0; i < trackers_l1d[index].degree; i++) {
+      uint64_t pf_address = (cl_addr + (stride * (i + 1))) << LOG2_BLOCK_SIZE;
+
+      // only issue a prefetch if the prefetch address is in the same 4 KB page
+      // as the current demand access address
+      if ((pf_address >> LOG2_PAGE_SIZE) != (addr >> LOG2_PAGE_SIZE))
+        break;
+
+      // (This part has been changed from ip_stride.l2_pref)
+      // check the MSHR occupancy to decide if we're going to prefetch to the L1
+      // or L2
+      if (MSHR.occupancy < (MSHR.SIZE >> 1))
+        prefetch_line(ip, addr, pf_address, FILL_L1, 0);
+      else
+        prefetch_line(ip, addr, pf_address, FILL_L2, 0);
+
+    }
+  }
+
+  trackers_l1d[index].last_cl_addr = cl_addr;
+  trackers_l1d[index].last_stride = stride;
+
+  for (int i = 0; i < IP_TRACKER_COUNT; i++) {
+    if (trackers_l1d[i].lru < trackers_l1d[index].lru)
+      trackers_l1d[i].lru++;
+  }
+  trackers_l1d[index].lru = 0;
+
+  return;
+}
+
+void CACHE::l1d_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
+                                      uint8_t prefetch, uint64_t evicted_addr,
+                                      uint32_t metadata_in) {}
+
+void CACHE::l1d_prefetcher_final_stats() {
+  cout << "CPU " << cpu << " L1D PC-based stride prefetcher final stats" << endl;
+}
