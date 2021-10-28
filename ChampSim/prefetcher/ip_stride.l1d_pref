@@ -4,10 +4,12 @@
 #include "ip_stride.h"
 
 #define IP_TRACKER_COUNT 1024
-#define ACCURACY_TH 0.25
 #define DEGREE_INIT 3
-#define DEGREE_LOWER 5
-#define DEGREE_UPPER 7
+#define THROTTLE_CONF 10 // update only if useful + useless is >= this 
+
+#define ACCURACY_TH 0.5 // for values > this, DEGREE_UPPER is set, for lower, DEGREE_LOWER is set
+#define DEGREE_LOWER 1
+#define DEGREE_UPPER 3
 
 IP_TRACKER trackers_l1d[IP_TRACKER_COUNT];
 
@@ -24,7 +26,7 @@ void CACHE::l1d_prefetch_throttle(uint64_t ip, int type) {
 
       // Change degree based on whether acc > threshold only when total > 0, else remains degree_init
       int total = trackers_l1d[i].pf_useless + trackers_l1d[i].pf_useful;
-      if (total > 0){
+      if (total >= THROTTLE_CONF){
         if (total * ACCURACY_TH > trackers_l1d[i].pf_useful)
           trackers_l1d[i].degree = DEGREE_LOWER;
         else
