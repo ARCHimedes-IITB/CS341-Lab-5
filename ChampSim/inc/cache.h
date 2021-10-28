@@ -158,8 +158,9 @@ public:
     pf_useless = 0;
     pf_fill = 0;
 
-    // MadCache - Uncomment the line below to use LRU
-    // predictor.set_override_policy(LRU);
+    #ifndef LLC_BYPASS
+      predictor.set_override_policy(LRU);
+    #endif
   };
 
   // destructor
