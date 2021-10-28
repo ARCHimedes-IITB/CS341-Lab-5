@@ -1080,7 +1080,7 @@ uint32_t CACHE::get_way(uint64_t address, uint32_t set) {
 }
 
 void CACHE::fill_cache(uint32_t set, uint32_t way, PACKET *packet) {
-  if (block[set][way].prefetch && (block[set][way].used == 0))
+  if (block[set][way].prefetch && (block[set][way].used == 0)) {
     pf_useless++;
     // Update the history for the current ip
     if (cache_type == IS_L1D)
