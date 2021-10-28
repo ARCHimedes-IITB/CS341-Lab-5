@@ -240,8 +240,30 @@ This corresponds to an increase (improvement) in IPC by roughly \textbf{20.065\%
 \chapter{Prefetching}
 
 
-\section{Normalized IPC improvement wrt thresholds}
-\section{Prefetcher coverage wrt thresholds}
+\section{The Throttle Policy}
+<briefly describe the policy we used and the way we calculated accuracy and coverage>
+
+\section{Results on different thresholds}
+\subsection{L1D Prefetcher}
+Here, we used the baseline parameters for L2C prefetcher and varied the threshold and upper bound for L1D. In the following figures, \texttt{x-y} represents that the threshold was set to \texttt{x} and the upper bound was set to \texttt{y} for that partiular run.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\linewidth]{images/L1D_table.png}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\linewidth]{images/L1D_plot.png}
+\end{figure}
+\subsection{L2C Prefetcher}
+Simialar to previous section, we varied the threshold and upper bound for L2C while keeping the baseline parameters for L1D.
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.8\linewidth]{images/L2C_table.png}
+% \end{figure}
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.8\linewidth]{images/L2C_plot.png}
+% \end{figure}
 \section{Source files edited or added}
 Added: \texttt{prefetchers/ip\_stride.l1d\_pref, inc/ip\_stride.h}
 
