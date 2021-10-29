@@ -64,7 +64,7 @@ def readValues(file, cache):
     return accuracy, coverage, ipc
 
 def findAccuracies(cache, accuracies, coverage, ipcs):
-    path = join(FOLDER, cache)
+    path = join(FOLDER, "combined")
     for f in listdir(path):
         cur_path = join(path, f)
         if isfile(cur_path):
@@ -116,16 +116,28 @@ for cache in CACHES:
         for j, file in enumerate(files):
             data[i, j] = 100.0 * (d2[file] / BASELINE[cache][LABELS[i]] - 1)
 
-    plt.figure()
+    fig = plt.figure()
     
-    for i in range(data.shape[0]):
+    for i in range(data.shape[0] - 1):
         plt.bar(X + i * 0.2, data[i, :], width = 0.2, color = COLORS[i], align='edge', label=LABELS[i])
 
     plt.ylabel('Percent improvement w.r.t. baseline')
-    plt.title(f'Accuracy, Coverage and IPC for {cache} cache')
+    plt.title(f'Accuracy and Coverage for {cache} cache')
     plt.xticks(X+0.3, files, rotation=30)
     plt.legend(labels=LABELS)
     plt.grid(linestyle='dotted', linewidth=1)
     # plt.show()
-    plt.savefig(f'{PLOT_DIR}/{cache}.png')
-   
+    plt.savefig(f'{PLOT_DIR}/combined_{cache}.png')
+
+plt.close(fig)
+
+
+fig = plt.figure()
+plt.bar(X + 2 * 0.2, data[2, :], width = 0.2, color = COLORS[2], align='edge', label=LABELS[2])
+plt.ylabel('Percent improvement w.r.t. baseline')
+plt.title(f'IPC')
+plt.xticks(X+0.3, files, rotation=30)
+plt.grid(linestyle='dotted', linewidth=1)
+# plt.show()
+plt.savefig(f'{PLOT_DIR}/combined_ipcs.png')
+plt.close(fig)
