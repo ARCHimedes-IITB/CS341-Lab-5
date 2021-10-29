@@ -10,11 +10,7 @@
 // the only reason the DYNAMIC enum entry is introduced. It has no
 // other use than to indicate that we are using MadCache and not
 // one of the static policies
-enum POLICY {
-  LRU = 0,
-  BBIP,
-  DYNAMIC
-};
+enum POLICY { LRU = 0, BBIP, DYNAMIC };
 
 // CACHE BLOCK
 class BLOCK {
@@ -316,22 +312,20 @@ public:
 
 /**
  * PREDICTOR - The core PC-predictor class.
- * Exposes helper functions for updating state and 
+ * Exposes helper functions for updating state and
  * extracting current policy.
  */
-class PREDICTOR
-{
+class PREDICTOR {
 private:
-  struct pc_predictor_entry
-  {
-    POLICY policy;              // Policy used when inserting
-    uint64_t pc;                // PC
-    uint8_t counter;            // Only 6 LSBs used
-    uint16_t num_entries;       // Number of entries; 9 LSBs used
+  struct pc_predictor_entry {
+    POLICY policy;        // Policy used when inserting
+    uint64_t pc;          // PC
+    uint8_t counter;      // Only 6 LSBs used
+    uint16_t num_entries; // Number of entries; 9 LSBs used
   };
 
   // Currently the number of entries is hardcoded to 1024
-  pc_predictor_entry  pred_entries[1024];
+  pc_predictor_entry pred_entries[1024];
   // Counter for the default policy - only the 10 LSBs are used
   uint16_t default_policy_counter;
 
@@ -339,22 +333,18 @@ private:
   POLICY global_override_policy;
 
 public:
-  PREDICTOR(POLICY gop=DYNAMIC)
-  {
+  PREDICTOR(POLICY gop = DYNAMIC) {
     // Initialize each entry to be invalid, and the default policy counter
     // to be *barely* LRU.
-    for (int i = 0; i < 1024; i++) 
+    for (int i = 0; i < 1024; i++)
       pred_entries[i].pc = (uint64_t)(-1);
     default_policy_counter = (1 << 9) - 1;
     global_override_policy = gop;
   }
 
-  ~PREDICTOR() { }
+  ~PREDICTOR() {}
 
-  void set_override_policy(POLICY gop) 
-  {
-    global_override_policy = gop;
-  }
+  void set_override_policy(POLICY gop) { global_override_policy = gop; }
 
   POLICY get_default_policy();
   POLICY get_policy(uint64_t pc);

@@ -109,7 +109,7 @@ public:
 
   // ------------ MadCache ------------- //
 
-  // predictor 
+  // predictor
   PREDICTOR predictor;
 
   // constructor
@@ -158,9 +158,9 @@ public:
     pf_useless = 0;
     pf_fill = 0;
 
-    #ifndef LLC_BYPASS
-      predictor.set_override_policy(LRU);
-    #endif
+#ifndef LLC_BYPASS
+    predictor.set_override_policy(LRU);
+#endif
   };
 
   // destructor
@@ -254,10 +254,10 @@ public:
   inline bool should_bypass(uint64_t pc);
 };
 
-// RNG - We use a different instantiation of the RNG for cache.h/cc than the one 
-// used in main.cc, since we **dont** want to change the (random) va->pa mappings
-// Refer to class RANDOM in champsim.h, and the code in main.cc that performs
-// the mapping.
+// RNG - We use a different instantiation of the RNG for cache.h/cc than the one
+// used in main.cc, since we **dont** want to change the (random) va->pa
+// mappings Refer to class RANDOM in champsim.h, and the code in main.cc that
+// performs the mapping.
 // Using seed - 23
 static RANDOM cache_rng(23);
 

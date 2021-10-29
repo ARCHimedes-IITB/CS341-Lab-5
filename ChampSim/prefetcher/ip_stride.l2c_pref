@@ -39,24 +39,25 @@ void CACHE::l2c_prefetch_throttle(uint64_t ip, int type) {
 
       trackers_l2c[i].access_count++;
       if (trackers_l2c[i].access_count % NUM_ACCESSES == 0) {
-        
+
         int total = trackers_l2c[i].pf_useless + trackers_l2c[i].pf_useful;
-        
+
         if (trackers_l2c[i].pf_useful > total * ACCURACY_TH)
-          trackers_l2c[i].degree += (trackers_l2c[i].degree == DEGREE_UPPER_BOUND) ? 0 : 1;
+          trackers_l2c[i].degree +=
+              (trackers_l2c[i].degree == DEGREE_UPPER_BOUND) ? 0 : 1;
         else
-          trackers_l2c[i].degree -= (trackers_l2c[i].degree == DEGREE_LOWER_BOUND) ? 0 : 1;
+          trackers_l2c[i].degree -=
+              (trackers_l2c[i].degree == DEGREE_LOWER_BOUND) ? 0 : 1;
       }
 
       break;
     }
   }
-
 }
 
 void CACHE::l2c_prefetcher_initialize() {
   cout << "CPU " << cpu << " L2C IP-based stride prefetcher" << endl;
-  for (int i = 0; i < IP_TRACKER_COUNT; i++){
+  for (int i = 0; i < IP_TRACKER_COUNT; i++) {
     trackers_l2c[i].lru = i;
     trackers_l2c[i].degree = DEGREE_INIT;
   }
@@ -93,8 +94,8 @@ uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
     trackers_l2c[index].access_count = 0;
 
     // cout << "[IP_STRIDE] MISS index: " << index << " lru: " <<
-    // trackers_l2c[index].lru << " ip: " << hex << ip << " cl_addr: " << cl_addr <<
-    // dec << endl;
+    // trackers_l2c[index].lru << " ip: " << hex << ip << " cl_addr: " <<
+    // cl_addr << dec << endl;
 
     for (int i = 0; i < IP_TRACKER_COUNT; i++) {
       if (trackers_l2c[i].lru < trackers_l2c[index].lru)
@@ -122,8 +123,8 @@ uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
   }
 
   // cout << "[IP_STRIDE] HIT  index: " << index << " lru: " <<
-  // trackers_l2c[index].lru << " ip: " << hex << ip << " cl_addr: " << cl_addr <<
-  // dec << " stride: " << stride << endl;
+  // trackers_l2c[index].lru << " ip: " << hex << ip << " cl_addr: " << cl_addr
+  // << dec << " stride: " << stride << endl;
 
   // don't do anything if we somehow saw the same address twice in a row
   if (stride == 0)

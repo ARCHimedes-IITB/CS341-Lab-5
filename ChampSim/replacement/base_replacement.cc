@@ -26,14 +26,14 @@ uint32_t CACHE::lru_victim(uint32_t cpu, uint64_t instr_id, uint32_t set,
 
   // fill invalid line first
   for (way = 0; way < NUM_WAY; way++) {
-    if (block[set][way].valid == false) 
+    if (block[set][way].valid == false)
       break;
   }
 
   // LRU victim
-  if (way == NUM_WAY) 
+  if (way == NUM_WAY)
     for (way = 0; way < NUM_WAY; way++)
-      if (block[set][way].lru == NUM_WAY - 1) 
+      if (block[set][way].lru == NUM_WAY - 1)
         break;
 
   if (way == NUM_WAY) {

@@ -23,7 +23,7 @@
 //#define DEBUG_PRINT
 #define SANITY_CHECK
 // MadCache - Comment the line below to use LRU
-#define LLC_BYPASS 
+#define LLC_BYPASS
 #define DRC_BYPASS
 #define NO_CRC2_COMPILE
 

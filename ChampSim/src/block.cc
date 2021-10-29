@@ -149,11 +149,10 @@ void PACKET_QUEUE::remove_queue(PACKET *packet) {
 /**
  * get_default_policy - Returns the current default policy
  */
-POLICY PREDICTOR::get_default_policy()
-{
+POLICY PREDICTOR::get_default_policy() {
   // If we are using a global overriding policy, return it instead
   // For now we never call get_default_policy unless this is not
-  // the case, hence commented out the below lines. 
+  // the case, hence commented out the below lines.
 
   // if (global_override_policy != DYNAMIC)
   //   return global_override_policy;
@@ -165,8 +164,7 @@ POLICY PREDICTOR::get_default_policy()
  * If a hit in the predictor, returns a PC-specific policy.
  * Otherwise returns the default policy.
  */
-POLICY PREDICTOR::get_policy(uint64_t pc)
-{
+POLICY PREDICTOR::get_policy(uint64_t pc) {
   // If we are using a global overriding policy, return it instead
   if (global_override_policy != DYNAMIC)
     return global_override_policy;
@@ -174,8 +172,8 @@ POLICY PREDICTOR::get_policy(uint64_t pc)
   POLICY default_policy = get_default_policy();
   for (int i = 0; i < 1024; i++) {
     if (pred_entries[i].pc == pc && default_policy == pred_entries[i].policy &&
-     pred_entries[i].num_entries)
-      return static_cast<POLICY>((pred_entries[i].counter >> 5)&1);
+        pred_entries[i].num_entries)
+      return static_cast<POLICY>((pred_entries[i].counter >> 5) & 1);
   }
   return default_policy;
 }
@@ -187,8 +185,7 @@ POLICY PREDICTOR::get_policy(uint64_t pc)
  * Returns the corresponding index if a merged or fresh entry is found/
  * created. Otherwise, returns -1 to indicate unavailability of slots.
  */
-int PREDICTOR::add_entry(uint64_t pc)
-{
+int PREDICTOR::add_entry(uint64_t pc) {
   // If we are using a global overriding policy, no need to do anything
   if (global_override_policy != DYNAMIC)
     return -1;
@@ -197,7 +194,7 @@ int PREDICTOR::add_entry(uint64_t pc)
   int free_index = -1;
   for (int i = 0; i < 1024; i++) {
     if (pred_entries[i].pc == pc && default_policy == pred_entries[i].policy &&
-     pred_entries[i].num_entries) {
+        pred_entries[i].num_entries) {
       // Simply increment num_entries and return this index
       pred_entries[i].num_entries++;
       return i;
@@ -216,13 +213,12 @@ int PREDICTOR::add_entry(uint64_t pc)
 }
 
 /**
- * update_hit - Called to indicate a hit in the LLC for a 
- * request to a cacheline that has an associated pred-index 
- * `index`. Decrements the counter of the corresponding entry, 
+ * update_hit - Called to indicate a hit in the LLC for a
+ * request to a cacheline that has an associated pred-index
+ * `index`. Decrements the counter of the corresponding entry,
  * except if we are already at 0.
  */
-void PREDICTOR::update_hit(int index)
-{
+void PREDICTOR::update_hit(int index) {
   // If we are using a global overriding policy, no need to do anything
   if (global_override_policy != DYNAMIC)
     return;
@@ -240,8 +236,7 @@ void PREDICTOR::update_hit(int index)
  * We separate this function from add_entry, since if we choose to
  * bypass, we will want to call update_miss but not add_entry.
  */
-void PREDICTOR::update_miss(uint64_t pc)
-{
+void PREDICTOR::update_miss(uint64_t pc) {
   // If we are using a global overriding policy, no need to do anything
   // Also, pc=0 indicates a prefetch miss
   if (global_override_policy != DYNAMIC || (!pc))
@@ -251,7 +246,7 @@ void PREDICTOR::update_miss(uint64_t pc)
 
   for (int i = 0; i < 1024; i++) {
     if (pred_entries[i].pc == pc && default_policy == pred_entries[i].policy &&
-     pred_entries[i].num_entries) {
+        pred_entries[i].num_entries) {
       // Look at the MSB of the counter
       if ((pred_entries[i].counter >> 5) & 1) {
         // We were bypassing -- decrement the global counter
@@ -264,7 +259,7 @@ void PREDICTOR::update_miss(uint64_t pc)
           default_policy_counter++;
       }
       break;
-    } 
+    }
   }
 }
 
@@ -273,11 +268,10 @@ void PREDICTOR::update_miss(uint64_t pc)
  * associated pred-index `index` has been evicted. Decrements
  * the num_entries of the corresponding entry, and increments
  * its counter if reuse is not set.
- * Further, removes the entry in the predictor if the 
+ * Further, removes the entry in the predictor if the
  * num_entries field falls to 0 for this pc.
  */
-void PREDICTOR::update_evicted(int index, bool reuse)
-{
+void PREDICTOR::update_evicted(int index, bool reuse) {
   // If we are using a global overriding policy, no need to do anything
   if (global_override_policy != DYNAMIC)
     return;
@@ -288,7 +282,7 @@ void PREDICTOR::update_evicted(int index, bool reuse)
   } else if (!reuse) {
     // At least one other user, and no reuse
     // Increment counter, unless already at max
-    if (pred_entries[index].counter != (1<<6)-1)
+    if (pred_entries[index].counter != (1 << 6) - 1)
       pred_entries[index].counter++;
   }
 }

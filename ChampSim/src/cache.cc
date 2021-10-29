@@ -32,71 +32,74 @@ void CACHE::handle_fill() {
                         block[set], MSHR.entry[mshr_index].ip,
                         MSHR.entry[mshr_index].full_addr,
                         MSHR.entry[mshr_index].type);
-/**
- * NOTE: There was previously an ifdef LLC_BYPASS here. It doesn't do anything:
- * The above llc_find_victim always returns a way < LLC_WAY, hence the if block 
- * inside the ifdef can never be taken.
- * Nonetheless, here is the code that was there:
+    /**
+     * NOTE: There was previously an ifdef LLC_BYPASS here. It doesn't do
+    anything:
+     * The above llc_find_victim always returns a way < LLC_WAY, hence the if
+    block
+     * inside the ifdef can never be taken.
+     * Nonetheless, here is the code that was there:
 
-#ifdef LLC_BYPASS
-    if ((cache_type == IS_LLC) &&
-        (way == LLC_WAY)) { // this is a bypass that does not fill the LLC
-      // update replacement policy
-      if (cache_type == IS_LLC) {
-        llc_update_replacement_state(
-            fill_cpu, set, way, MSHR.entry[mshr_index].full_addr,
-            MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
+    #ifdef LLC_BYPASS
+        if ((cache_type == IS_LLC) &&
+            (way == LLC_WAY)) { // this is a bypass that does not fill the LLC
+          // update replacement policy
+          if (cache_type == IS_LLC) {
+            llc_update_replacement_state(
+                fill_cpu, set, way, MSHR.entry[mshr_index].full_addr,
+                MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
 
-      } else
-        update_replacement_state(
-            fill_cpu, set, way, MSHR.entry[mshr_index].full_addr,
-            MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
+          } else
+            update_replacement_state(
+                fill_cpu, set, way, MSHR.entry[mshr_index].full_addr,
+                MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
 
-      // COLLECT STATS
-      sim_miss[fill_cpu][MSHR.entry[mshr_index].type]++;
-      sim_access[fill_cpu][MSHR.entry[mshr_index].type]++;
+          // COLLECT STATS
+          sim_miss[fill_cpu][MSHR.entry[mshr_index].type]++;
+          sim_access[fill_cpu][MSHR.entry[mshr_index].type]++;
 
-      // check fill level
-      if (MSHR.entry[mshr_index].fill_level < fill_level) {
+          // check fill level
+          if (MSHR.entry[mshr_index].fill_level < fill_level) {
 
-        if (fill_level == FILL_L2) {
-          if (MSHR.entry[mshr_index].fill_l1i) {
-            upper_level_icache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+            if (fill_level == FILL_L2) {
+              if (MSHR.entry[mshr_index].fill_l1i) {
+                upper_level_icache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+              }
+              if (MSHR.entry[mshr_index].fill_l1d) {
+                upper_level_dcache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+              }
+            } else {
+              if (MSHR.entry[mshr_index].instruction)
+                upper_level_icache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+              if (MSHR.entry[mshr_index].is_data)
+                upper_level_dcache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+            }
           }
-          if (MSHR.entry[mshr_index].fill_l1d) {
-            upper_level_dcache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+
+          if (warmup_complete[fill_cpu] &&
+              (MSHR.entry[mshr_index].cycle_enqueued != 0)) {
+            uint64_t current_miss_latency = (current_core_cycle[fill_cpu] -
+                                             MSHR.entry[mshr_index].cycle_enqueued);
+            total_miss_latency += current_miss_latency;
           }
-        } else {
-          if (MSHR.entry[mshr_index].instruction)
-            upper_level_icache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
-          if (MSHR.entry[mshr_index].is_data)
-            upper_level_dcache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+
+          MSHR.remove_queue(&MSHR.entry[mshr_index]);
+          MSHR.num_returned--;
+
+          update_fill_cycle();
+
+          return; // return here, no need to process further in this function
         }
-      }
-
-      if (warmup_complete[fill_cpu] &&
-          (MSHR.entry[mshr_index].cycle_enqueued != 0)) {
-        uint64_t current_miss_latency = (current_core_cycle[fill_cpu] -
-                                         MSHR.entry[mshr_index].cycle_enqueued);
-        total_miss_latency += current_miss_latency;
-      }
-
-      MSHR.remove_queue(&MSHR.entry[mshr_index]);
-      MSHR.num_returned--;
-
-      update_fill_cycle();
-
-      return; // return here, no need to process further in this function
-    }
-#endif
-  */
+    #endif
+      */
 
     // Find out what to do with this miss
     // One exception: if the miss' fill_level is not less than FILL_LLC,
     // we most probably have a prefetch. These should never bypass the LLC.
     // Also, skip if entry is invalid.
-    if (cache_type == IS_LLC && MSHR.entry[mshr_index].fill_level < fill_level && 
-      block[set][way].valid && should_bypass(MSHR.entry[mshr_index].ip)) {
+    if (cache_type == IS_LLC &&
+        MSHR.entry[mshr_index].fill_level < fill_level &&
+        block[set][way].valid && should_bypass(MSHR.entry[mshr_index].ip)) {
       // We do NOT update replacement state here, unlike the commented out
       // code segment above: this should **not** be done as it messes with
       // the LRU policy.
@@ -113,9 +116,10 @@ void CACHE::handle_fill() {
         upper_level_dcache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
 
       // Account for the miss latency
-      if (warmup_complete[fill_cpu] && MSHR.entry[mshr_index].cycle_enqueued != 0) 
-        total_miss_latency += 
-          current_core_cycle[fill_cpu] - MSHR.entry[mshr_index].cycle_enqueued;
+      if (warmup_complete[fill_cpu] &&
+          MSHR.entry[mshr_index].cycle_enqueued != 0)
+        total_miss_latency += current_core_cycle[fill_cpu] -
+                              MSHR.entry[mshr_index].cycle_enqueued;
 
       // No adding of predictor entries here: we are bypassing the LLC
 
@@ -163,10 +167,10 @@ void CACHE::handle_fill() {
     if (do_fill) {
       // Regardless of whether the line was dirty, as long as it was valid
       // we need to update state at the LLC
-      if (cache_type == IS_LLC && block[set][way].valid && 
-        block[set][way].pc_pred_index != -1) 
-        predictor.update_evicted(block[set][way].pc_pred_index, 
-          block[set][way].reuse);
+      if (cache_type == IS_LLC && block[set][way].valid &&
+          block[set][way].pc_pred_index != -1)
+        predictor.update_evicted(block[set][way].pc_pred_index,
+                                 block[set][way].reuse);
 
       // update prefetcher
       if (cache_type == IS_L1I)
@@ -311,11 +315,10 @@ void CACHE::handle_writeback() {
       /*
        * Writeback hits *do not* update the predictor state. This is for
        * two reasons:
-       * o Writebacks have an IP of 0, and do not really represent reuse of any kind 
-       *   (the opposite, rather).
-       * o Whether we hit is largely dependent on whether we originally decided to 
-       *   bypass the LLC. Since this is not indicative of program behavior, we 
-       *   don't do anything here.
+       * o Writebacks have an IP of 0, and do not really represent reuse of any
+       * kind (the opposite, rather). o Whether we hit is largely dependent on
+       * whether we originally decided to bypass the LLC. Since this is not
+       * indicative of program behavior, we don't do anything here.
        */
 
       if (cache_type == IS_ITLB)
@@ -348,7 +351,7 @@ void CACHE::handle_writeback() {
 
       // remove this entry from WQ
       WQ.remove_queue(&WQ.entry[index]);
-    } else { // writeback miss (or RFO miss for L1D)
+    } else {                      // writeback miss (or RFO miss for L1D)
       if (cache_type == IS_L1D) { // RFO miss
 
         // check mshr
@@ -478,11 +481,11 @@ void CACHE::handle_writeback() {
         if (do_fill) {
 
           // MadCache - whether we chose to write the evicted line back
-          // or not, we need to update its state. 
+          // or not, we need to update its state.
           if (cache_type == IS_LLC && is_tracker_set(set) &&
-            block[set][way].valid)
-            predictor.update_evicted(block[set][way].pc_pred_index, 
-              block[set][way].reuse);
+              block[set][way].valid)
+            predictor.update_evicted(block[set][way].pc_pred_index,
+                                     block[set][way].reuse);
 
           // update prefetcher
           if (cache_type == IS_L1I)
@@ -1113,11 +1116,11 @@ void CACHE::fill_cache(uint32_t set, uint32_t way, PACKET *packet) {
 
   // MadCache --  if this packet has a fill_level < than the one
   // of our cache and we are the LLC, we are looking at a LD miss.
-  // We should try to create an entry for this packet if it 
+  // We should try to create an entry for this packet if it
   // falls into a tracker set.
   block[set][way].reuse = false;
   if (cache_type == IS_LLC && packet->fill_level < fill_level &&
-    is_tracker_set(set))
+      is_tracker_set(set))
     block[set][way].pc_pred_index = predictor.add_entry(block[set][way].ip);
   else
     block[set][way].pc_pred_index = -1;
@@ -1598,7 +1601,7 @@ void CACHE::update_fill_cycle() {
 
 int CACHE::check_mshr(PACKET *packet) {
   // search mshr
-  for (uint32_t index = 0; index < MSHR_SIZE; index++) 
+  for (uint32_t index = 0; index < MSHR_SIZE; index++)
     if (MSHR.entry[index].address == packet->address)
       return index;
 
@@ -1658,8 +1661,7 @@ void CACHE::increment_WQ_FULL(uint64_t address) { WQ.FULL++; }
  * a tracker set. Called to know whether we should do accounting for this
  * access. For now we simple use the 4 LSBs of the index bits to decide..
  */
-bool CACHE::is_tracker_set(uint32_t set)
-{
+bool CACHE::is_tracker_set(uint32_t set) {
   // Return true if last 4 bits of index = 0x1001 - Roughly 1/16 chance
   return ((set & 0xF) == 9);
 }
@@ -1670,10 +1672,9 @@ bool CACHE::is_tracker_set(uint32_t set)
  * we don't bypass. With BBIP, with a 1/32-th chance
  * we don't bypass and otherwise we do.
  */
-bool CACHE::should_bypass(uint64_t pc)
-{
-  if (predictor.get_policy(pc) == LRU || 
-    (cache_rng.draw_rand() & 0x11111) == 0x11001)
+bool CACHE::should_bypass(uint64_t pc) {
+  if (predictor.get_policy(pc) == LRU ||
+      (cache_rng.draw_rand() & 0x11111) == 0x11001)
     return false;
   return true;
 }
