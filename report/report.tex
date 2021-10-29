@@ -169,12 +169,12 @@ A subset of the cache sets are called trackers sets, and the behavior of PCs acc
 The rest of the sets, in fact, the majority of the cache are called follower sets, and they simply adhere to the default insertion policy.
 A lookup table referred to as the ``PC-predictor’’ is used to keep track of the history of PCs that have accessed the tracker sets. It has 1024 entries of 3 columns - (Default policy at the time of the entry of this PC, PC), a 6-bit counter whose MSB determines the behavior for this PC, and the number of entries associated with the PC. \\
 
-At the start, the PC-predictor and the cache are empty, and the counter is set to 511, i.e. just below the threshold for BBIP.
-After an initial LLC miss for a cacheline in the tracker sets, the invoking PC would be added to the PC-predictor. The counter for the entry is set to 63, i.e. just below the threshold of BBIP. The cacheline would be added to the LLC. The cacheline (in the tracker set) would also store the index to the table and a reuse bit to reward or penalize the tracked PC entry.
-If the cacheline is accessed again, the counter for the PC entry would be decremented (in favor of LRU). However, if the cacheline is evicted without being reused then the counter would be incremented (in favor of BBIP).
+At the start, the PC-predictor and the cache are empty, and the counter is set to 511, i.e., just below the threshold for BBIP.
+After an initial LLC miss for a cacheline in the tracker sets, the invoking PC would be added to the PC-predictor. The counter for the entry is set to 63, i.e., just below the threshold of BBIP. The cacheline would be added to the LLC. The cacheline (in the tracker set) would also store the index to the table and a reuse bit to reward or penalize the tracked PC entry.
+If the cacheline is accessed again, the counter for the PC entry would be decremented (in favor of LRU). However, if the cacheline is evicted without being reused, then the counter would be incremented (in favor of BBIP).
 Entries from the PC-predictor are evicted when the number of cachelines brought in by the PC entry falls to zero.
 
-More detailed explanation of the MadCache policy is given in \autoref{LLC Bypassing}. \\
+A more detailed explanation of the MadCache policy is given in \autoref{LLC Bypassing}. \\
 
 MadCache performs faster than both LRU and DIP, resulting in a 4.5\% speedup over LRU.
 
@@ -189,7 +189,7 @@ MadCache performs faster than both LRU and DIP, resulting in a 4.5\% speedup ove
               \item Read the data and update it in the packet that we got from the read queue.
               \item If it is a load request, update the prefetcher using the prefetcher\_operate functions
               \item Update the replacement policy using the update\_replacement\_policy functions. aThis corresponds to bringing the accessed block to MRU position in the LRU scheme.
-              \item Mark the entry in the MSHR of higher level as completed and add the data to it. This is done using the \texttt{return\_data} function for the correct upper level cache. Notice that for L1D, L1I, ITLB and DTLB do not have a higher level cache. Istead, they put the data in the PROCESSING queue.
+              \item Mark the entry in the MSHR of higher level as completed and add the data to it. This is done using the \texttt{return\_data} function for the correct upper level cache. Notice that for L1D, L1I, ITLB and DTLB do not have a higher level cache. Instead, they put the data in the PROCESSING queue.
               \item Update the statistics like number of hits and number of accesses.
           \end{itemize}
     \item A read miss means that the line requested is not present in the cache. In such a case, we do the following:(skipping over getting the query and detecting a miss as it is same as hit)
@@ -233,7 +233,7 @@ The relevant output files are in their respective directories, as required by th
     \centering
     \includegraphics[width=0.55\linewidth]{images/predictor.png}
 \end{figure}
-The predictor consists of a global 10-bit counter (which determines the global default policy, initialized to 0111111111 or 511) and a set of entries each with their own counters which determines PC-specific policies. In particular, if the MSB of the global counter is 0, the default policy is LRU; else it is to use BBIP. Here, BBIP uses LRU 1/32-th of the time, and bypasses otherwise. Each entry contains:
+The predictor consists of a global 10-bit counter (which determines the global default policy, initialized to 0111111111 or 511) and a set of entries each with their counters, which determines PC-specific policies. In particular, if the MSB of the global counter is 0, the default policy is LRU; else, it is to use BBIP. Here, BBIP uses LRU 1/32-th of the time and bypasses otherwise. Each entry contains:
 \begin{itemize}
     \item \textbf{Default policy and PC:} This consists of the PC used when fetching the cacheline which led to the creation of this entry, and the default policy at the time.
     \item \textbf{Counter:} A 6-bit counter governing the PC-specific policy, of 6 bits.
@@ -244,15 +244,15 @@ Next we describe how we use this predictor to decide what to do with newly fetch
     \centering
     \includegraphics[width=0.6\linewidth]{images/newcacheline.png}
 \end{figure}
-If the \texttt{(Policy,PC)} pair exists in the predictor, we use the custom policy to decide what to do. This occurs even for lines not in tracker sets (we map those cachelines whose index bits have 0101 as the 4 LSBs as tracker sets; i.e. 1/16 of all cachelines are tracker sets). However, for these non-tracker lines we do \textbf{not} create an entry in the predictor. However, if the cacheline \textit{is} part of a tracker set, we check to see if an entry exists in the predictor. If so, we use the corresponding custom policy and increment its \texttt{\#entries} field if it happens to be LRU (we shouldn't and don't do this for Bypass since there is no cacheline allocated in that case). Otherwise, we fall back to using the default policy, and try to allocate a free predictor entry for this cacheline. If this succeeds, we initialize it with a counter of 011111 (``just'' LRU) and a \texttt{\#entries} field of 1. Note that if the allocation fails, we treat this cacheline just as if it were a non-tracker line henceforth (until new data is brought into it again).\\
-If the policy used is LRU, we initialize the cacheline by setting \texttt{reuse=0} and the \texttt{pc\_pred\_index} to point to the allocated predictor entry.\\
-Further, whenever we see a miss that maps to a tracker set, we check if we have a PC-specific policy for this PC. If so, we correspondingly change the global counter to penalize that specific type of behaviour (since it caused us a miss). This implements set dueling (or "PC dueling", rather) between the LRU and Bypass sets.
+If the \texttt{(Policy, PC)} pair exists in the predictor, we use the custom policy to decide what to do. This occurs even for lines not in tracker sets (we map those cachelines whose index bits have 0101 as the 4 LSBs as tracker sets; i.e., 1/16 of all cachelines are tracker sets). However, for these non-tracker lines, we do \textbf{not} create an entry in the predictor. However, if the cacheline \textit{is} part of a tracker set, we check to see if an entry exists in the predictor. If so, we use the corresponding custom policy and increment its \texttt{\#entries} field if it happens to be LRU (we shouldn't and don't do this for Bypass since there is no cacheline allocated in that case). Otherwise, we fall back to using the default policy and try to allocate a free predictor entry for this cacheline. If this succeeds, we initialize it with a counter of 011111 (``just'' LRU) and a \texttt{\#entries} field of 1. Note that if the allocation fails, we treat this cacheline just as if it were a non-tracker line henceforth (until new data is brought into it again).\\
+If the policy used is LRU, we initialize the cacheline by setting \texttt{reuse=0} and the \texttt{pc\_pred\_index} to point to the allocated predictor entry. \\
+Further, whenever we see a miss that maps to a tracker set, we check if we have a PC-specific policy for this PC. If so, we correspondingly change the global counter to penalize that specific type of behavior (since it caused us a miss). This implements set dueling (or ``PC dueling'', rather) between the LRU and Bypass sets.
 We next look at the lifetime of a tracker cacheline in the LLC. Refer to the flowchart below.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\linewidth]{images/lifecycle.png}
 \end{figure}
-A tracker cacheline starts out with a \texttt{reuse} bit of 0, and a counter initialized to 31 (if it was the first one for that entry). Whenever this cacheline sees a hit, it means that we were right to use LRU; thus we decrement the corresponding predictor entry's counter to make the behaviour more "LRU-like" for this PC. We also set \texttt{reuse=1} for this cacheline on a hit. On the other hand, when the cacheline is being evicted, if we see a reuse bit of 0, this means that the cacheline was never used again; we should have bypassed the LLC. Thus we increment the corresponding counter. In either case, we decrement the \texttt{\#entries} field of the counter on eviction, and if it falls to 0, de-allocate the predictor entry (so that it can be used by future misses). \\
+A tracker cacheline starts with a \texttt{reuse} bit of 0 and a counter initialized to 31 (if it was the first one for that entry). Whenever this cacheline sees a hit, it means that we were right to use LRU; thus, we decrement the corresponding predictor entry's counter to make the behavior more ``LRU-like'' for this PC. We also set \texttt{reuse=1} for this cacheline on a hit. On the other hand, when the cacheline is being evicted, if we see a reuse bit of 0, this means that the cacheline was never used again; we should have bypassed the LLC. Thus we increment the corresponding counter. In either case, we decrement the \texttt{\#entries} field of the counter on eviction, and if it falls to 0, de-allocate the predictor entry (so that it can be used by future misses).
 
 \section{Source files edited or added}
 We modified the following files to implement the above scheme:
@@ -275,22 +275,22 @@ This corresponds to an increase (improvement) in IPC by roughly \textbf{20.065\%
 
 \section{Implementation}
 Each IP initially has the prefetch degree set to $3$. We dynamically update it based on the per-IP accuracy of the prefetches.\\
-For each IP, we track the number of useful and useless prefetches. Whenever any prefetch is marked as useful or useless in \texttt{cache.cc}, the \texttt{prefetch\_throttle} function is called (depending on the cache type) and these values are updated for the respective IP. \texttt{prefetch\_throttle} updates the degree based on the throttle policy.
+For each IP, we track the number of useful and useless prefetches. Whenever any prefetch is marked as useful or useless in \texttt{cache.cc}, the \texttt{prefetch\_throttle} function is called (depending on the cache type), and these values are updated for the respective IP. \texttt{prefetch\_throttle} updates the degree based on the throttle policy.
 
 \subsection{Throttle Policy}
-For a cache, we define $d_u, d_l$ as the upper and lower bounds on the prefetch degree, and $t$ as the threshold.\\
-For an IP, updates to the degree occur only after \texttt{prefetch\_throttle} is called $10$ times for that IP, this counter is reset after every update.\\
-Updates happen based on the accuracy, which is the ratio of useful to useful $+$ useless prefetches.\\
-If accuracy is $> t$, then the degree is incremented by $1$, unless it's already equal to $d_u$.\\
-If accuracy is $\le t$, then the degree is decremented by $1$, unless it's already equal to $d_l$.\\
-Sections \ref{section:ipc} \& \ref{section:ac} report the results for different values of $t$, for each cache, keeping $d_l, d_u$ fixed as:\\
-L1D: $d_l = 1, d_u = 8$\\
+For a cache, we define $d_u, d_l$ as the upper and lower bounds on the prefetch degree and $t$ as the threshold. \\
+For an IP, updates to the degree occur only after \texttt{prefetch\_throttle} is called $10$ times for that IP; this counter is reset after every update. \\
+Updates happen based on the accuracy, which is the ratio of useful to useful $+$ useless prefetches. \\
+If accuracy is $> t$, then the degree is incremented by $1$, unless it's already equal to $d_u$. \\
+If accuracy is $\le t$, then the degree is decremented by $1$, unless it's already equal to $d_l$. \\
+Sections \ref{section:ipc} \& \ref{section:ac} report the results for different values of $t$, for each cache, keeping $d_l, d_u$ fixed as: \\
+L1D: $d_l = 1, d_u = 8$ \\
 L2C: $d_l = 1, d_u = 16$
 
 \subsection{Selecting $d_l, d_u$}
-$d_l$ has been fixed to $1$ throughout, we don't tune this parameter. Figures \ref{fig:l1d}, \ref{fig:l2c} contain the results that help us choose $d_u$. Section \ref{sec:result_values} contains the respective numeric values obtained.\\
+$d_l$ has been fixed to $1$ throughout; we don't tune this parameter. Figures \ref{fig:l1d}, \ref{fig:l2c} contain the results that help us choose $d_u$. Section \ref{sec:result_values} contains the respective numeric values obtained.\\
 For L1D, we first fix the parameters for L2C at the baseline ($d_u = d_l = 3$, i.e., no throttling) then we compute the metrics for all combinations of $t \in \{0.25, 0.5, 0.75\}$ and $d_u \in \{4, 6, 8\}$. We observe that $d_u = 8$ gives the highest IPC. Thus, we set $d_u = 8$ for L1D.\\
-For L2C, we first fix the parameters for L1D at the baseline ($d_u = d_l = 3$, i.e., no throttling) then we compute the results for all combinations of $t \in \{0.25, 0.5, 0.75\}$ and $d_u \in \{6, 8, 10, 12\}$. From these results, we observe that for threshold values $0.5$ and $0.75$, the results are poor and stay approximately the same. This could be since the accuracy values for IPs in L2C are low, they always tend to stay below $0.5$, thus the degrees quickly reduces to $1$ and stays $1$ throughout. This motivates us to change the set of $t$ values which we are considering. We also observe that for a fixed threshold, best results are obtained for $d_u = 16$. Thus, we run more experiments for $d_u = 16$ and $t \in \{0.05, 0.15\}$. We observe that the best IPC is obtained for $t = 0.05$ and $d_u = 16$. Thus, we set $d_u = 16$ for L2C.
+For L2C, we first fix the parameters for L1D at the baseline ($d_u = d_l = 3$, i.e., no throttling) then we compute the results for all combinations of $t \in \{0.25, 0.5, 0.75\}$ and $d_u \in \{6, 8, 10, 12\}$. From these results, we observe that the results are poor for threshold values 0.5 and 0.75 and stay approximately the same. This could be since the accuracy values for IPs in L2C are low; they always tend to stay below $0.5$; thus, the degree quickly reduces to $1$ and stays $1$ throughout. This motivates us to change the set of $t$ values that we are considering. We also observe that for a fixed threshold, the best results are obtained for $d_u = 16$. Thus, we run more experiments for $d_u = 16$ and $t \in \{0.05, 0.15\}$. We observe that the best IPC is obtained for $t = 0.05$ and $d_u = 16$. Thus, we set $d_u = 16$ for L2C.
 
 \medskip
 Finally, after fixing $d_u, d_l$ for both the caches, we compute the results for all combinations of $t_{L1D} \in \{0.25, 0.5, 0.75\}$ and $t_{L2C} \in \{0.05, 0.15, 0.25\}$ and report these in sections \ref{section:ipc} and \ref{section:ac}.
@@ -446,7 +446,7 @@ Added:
 
 \chapter{Running the code}
 \section{Part 1: LLC Bypassing}
-The decision variable used to decide whether to use the implemented version or the baseline is \texttt{LLC\_BYPASS} in \texttt{champsim.h} file. If it is defined, then the code will use Madcache, otherwise it uses the default LRU policy.\\
+The decision variable used to decide whether to use the implemented version or the baseline is \texttt{LLC\_BYPASS} in \texttt{champsim.h} file. If it is defined, then the code will use Madcache; otherwise, it uses the default LRU policy.\\
 The commands used are:
 \begin{verbatim}
     ./build_champsim.sh bimodal no no no no lru 1
@@ -486,7 +486,7 @@ The threshold and the bounds are defined in the respective file with the names \
           Vibhav Aggarwal & Part 3 code and experiments, plotter scripts               \\
           Adithya Bhaskar & Part 1 code, part 2 explanation                            \\
           Devansh Jain    & Part 0 summary, part 1 code testing, result for part 2     \\
-          Harshit Varma   & Part 3 code and experiments, Part 4                        \\
+          Harshit Varma   & Part 3 code and experiments, part 4                        \\
           Harshit Gupta   & Part 0 code explanation, part 1 code testing, code merging \\
           \hline
       \end{tabular}
