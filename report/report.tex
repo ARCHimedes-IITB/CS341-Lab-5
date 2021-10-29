@@ -149,7 +149,12 @@
 %% Abstract
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter*{\centerline{Abstract}}
-Summarize the objective of the lab, what experiments you have conducted, what were the results that you have obtained in a clear and concise manner. Numbers matter, not just words only, for ex. \emph{very high}, \emph{slow} etc.
+This lab consists of two parts, LLC Bypassing and Prefetcher Filtering. \\
+
+In the first part of the lab, we implement an Instruction Pointer/Program Counter-based adaptive insertion policy for LLC in ChampSim. We refer to a paper on MadCache, an example of such a policy, and implement a similar policy. Our implementation increases the IPC by roughly 20\% for the given trace file. \\
+
+In the second part of the lab, we implement prefetch filtering/throttling for a simple IP-based prefetcher. Our implementation increases the IPC by roughly 16\% for the given trace file.
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -188,7 +193,7 @@ MadCache performs faster than both LRU and DIP, resulting in a 4.5\% speedup ove
               \item Get the set and the way corresponding to the request address. For a hit, there must be a way with same address as the requested one. This is done using the \texttt{get\_set} and \texttt{check\_hit} functions.
               \item Read the data and update it in the packet that we got from the read queue.
               \item If it is a load request, update the prefetcher using the prefetcher\_operate functions
-              \item Update the replacement policy using the update\_replacement\_policy functions. aThis corresponds to bringing the accessed block to MRU position in the LRU scheme.
+              \item Update the replacement policy using the update\_replacement\_policy functions. This corresponds to bringing the accessed block to MRU position in the LRU scheme.
               \item Mark the entry in the MSHR of higher level as completed and add the data to it. This is done using the \texttt{return\_data} function for the correct upper level cache. Notice that for L1D, L1I, ITLB and DTLB do not have a higher level cache. Instead, they put the data in the PROCESSING queue.
               \item Update the statistics like number of hits and number of accesses.
           \end{itemize}
@@ -319,6 +324,8 @@ Finally, after fixing $d_u, d_l$ for both the caches, we compute the results for
     \label{fig:ipcs}
 \end{figure}
 
+As can be seen from the plot, the best IPC improvement achieved is about \textbf{16\%} for the thresholds \texttt{0.25} for L1D and \texttt{0.05} for L2C.
+
 \section{Prefetcher accuracies and coverage wrt thresholds}
 \label{section:ac}
 
@@ -342,7 +349,7 @@ Finally, after fixing $d_u, d_l$ for both the caches, we compute the results for
 \begin{figure}[H]
     \centering
     \begin{BVerbatim}
-----------------------L1D----------------------
+---------------------L1D-----------------------
 +--------+------------+------------+----------+
 | t-d_u  |   Accuracy |   Coverage |      IPC |
 |--------+------------+------------+----------|
@@ -357,13 +364,13 @@ Finally, after fixing $d_u, d_l$ for both the caches, we compute the results for
 | 0.75-8 |   0.754403 |   0.199547 | 0.212759 |
 +--------+------------+------------+----------+
     \end{BVerbatim}
-    \caption{Results related to figure \ref{fig:l1d}}
+    \caption{Results related to figure \ref{fig:l1d}. Result files included in \texttt{prefetch\_throttling\_result/L1D}}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \begin{BVerbatim}
-----------------------L2C----------------------
+----------------------L2C-----------------------
 +---------+------------+------------+----------+
 | t-d_u   |   Accuracy |   Coverage |      IPC |
 |---------+------------+------------+----------|
@@ -385,13 +392,13 @@ Finally, after fixing $d_u, d_l$ for both the caches, we compute the results for
 | 0.75-12 |   0.177679 |   0.134674 | 0.208561 |
 +---------+------------+------------+----------+
     \end{BVerbatim}
-    \caption{Results related to figure \ref{fig:l2c}}
+    \caption{Results related to figure \ref{fig:l2c}. Result files included in \texttt{prefetch\_throttling\_result/L2C}}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \begin{BVerbatim}
-----------------------L1D----------------------
+------------------------L1D-----------------------
 +-----------+------------+------------+----------+
 | t_1d-t_2c |   Accuracy |   Coverage |      IPC |
 |-----------+------------+------------+----------|
@@ -406,13 +413,13 @@ Finally, after fixing $d_u, d_l$ for both the caches, we compute the results for
 | 0.75-0.25 |   0.77263  |   0.196597 | 0.231663 |
 +-----------+------------+------------+----------+
     \end{BVerbatim}
-    \caption{Results related to figure \ref{fig:cl1d}}
+    \caption{Results related to figure \ref{fig:cl1d}. Files included in \texttt{prefetch\_throttling\_result/combined}}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \begin{BVerbatim}
-----------------------L2C----------------------
+------------------------L2C-----------------------
 +-----------+------------+------------+----------+
 | t_1d-t_2c |   Accuracy |   Coverage |      IPC |
 |-----------+------------+------------+----------|
@@ -427,7 +434,7 @@ Finally, after fixing $d_u, d_l$ for both the caches, we compute the results for
 | 0.75-0.25 |   0.358576 |   0.32765  | 0.231663 |
 +-----------+------------+------------+----------+
     \end{BVerbatim}
-    \caption{Results related to figure \ref{fig:cl2c}}
+    \caption{Results related to figure \ref{fig:cl2c}. Files included in \texttt{prefetch\_throttling\_result/combined}}
 \end{figure}
 
 \section{Source files edited or added}
@@ -445,14 +452,15 @@ Added:
 \end{verbatim}
 
 \chapter{Running the code}
-\section{Part 1: LLC Bypassing}
+\section{LLC Bypassing}
 The decision variable used to decide whether to use the implemented version or the baseline is \texttt{LLC\_BYPASS} in \texttt{champsim.h} file. If it is defined, then the code will use Madcache; otherwise, it uses the default LRU policy.\\
 The commands used are:
 \begin{verbatim}
     ./build_champsim.sh bimodal no no no no lru 1
     ./run_champsim.sh bimodal-no-no-no-no-lru-1core 10 10 trace.champsimtrace.xz
 \end{verbatim}
-\section{Part 3: Prefetching}
+
+\section{Prefetching}
 Disable LLC Bypassing as explained above.(Comment out the line defining \texttt{LLC\_BYPASS} in \texttt{champsim.h}.) The prefetchers are defined in the files \texttt{ip\_stride.l2c\_pref} and \texttt{ip\_stride.l1d\_pref}. So, depending on which prefetcher to use, pass the name while running \texttt{build\_champsim.sh}.\\
 The commands will be:
 \begin{verbatim}
@@ -466,7 +474,8 @@ Combined:
     ./build_champsim.sh bimodal no ip_stride ip_stride no lru 1
     ./run_champsim.sh bimodal-no-ip_stride-ip_stride-no-lru-1core 10 10 trace.champsimtrace.xz
 \end{verbatim}
-The threshold and the bounds are defined in the respective file with the names \texttt{ACCURACY\_TH}, \texttt{DEGREE\_LOWER\_BOUND} and \texttt{DEGREE\_UPPER\_BOUND}. Set both \texttt{DEGREE\_LOWER\_BOUND} and \texttt{DEGREE\_UPPER\_BOUND} to $3$ to get the baseline result.
+The threshold and the bounds are defined in the respective file with the names \texttt{DEGREE\_LOWER\_BOUND}, \texttt{DEGREE\_UPPER\_BOUND} and \texttt{ACCURACY\_TH}. \\
+Set both \texttt{DEGREE\_LOWER\_BOUND} and \texttt{DEGREE\_UPPER\_BOUND} to $3$ to get the baseline result.
 
 
 
